@@ -19,6 +19,7 @@ class InputTrigger : public Trigger {
       boolean newPinValue = digitalRead(this->pinNumber);
       if (newPinValue != this->pinValue) {
         this->debounceTime = millis();
+        this->pinValue = newPinValue;
       }
     
       if (millis() - this->debounceTime > this->debounceDurationLimit) {
