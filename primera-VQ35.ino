@@ -1,18 +1,53 @@
-#include "DigitalButton.h"
+#include "Button.h"
 #include "TimedOutput.h"
+#include "Mmi.h"
+
+  /////////////////////
+ // MMI DEFINITIONS // 
+/////////////////////
+
+// Buttons
+Mmi mmi(&Serial5, SERIAL_8N2_RXINV, 16, 17, 2);
+MmiButton *mmiBigWheelButton    = mmi.createButton(0x01);
+MmiButton *mmiMediaButton       = mmi.createButton(0x02);
+MmiButton *mmiNameButton        = mmi.createButton(0x03);
+MmiButton *mmiTelButton         = mmi.createButton(0x04);
+MmiButton *mmiNavButton         = mmi.createButton(0x05);
+MmiButton *mmiInfoButton        = mmi.createButton(0x06);
+MmiButton *mmiCarButton         = mmi.createButton(0x07);
+MmiButton *mmiSetupButton       = mmi.createButton(0x08);
+MmiButton *mmiTopLeftButton     = mmi.createButton(0x0A);
+MmiButton *mmiBottomLeftButton  = mmi.createButton(0x0B);
+MmiButton *mmiPreviousButton    = mmi.createButton(0x0C);
+MmiButton *mmiTopRightButton    = mmi.createButton(0x0D);
+MmiButton *mmiBottomRightButton = mmi.createButton(0x0E);
+MmiButton *mmiReturnButton      = mmi.createButton(0x0F);
+MmiButton *mmiNextButton        = mmi.createButton(0x10);
+MmiButton *mmiRadioButton       = mmi.createButton(0x18);
+MmiButton *mmiSmallWheelButton  = mmi.createButton(0x38);
+
+// Wheels
+MmiWheel *mmiSmallWheel = mmi.createWheel(0x40);
+MmiWheel *mmiBigWheel   = mmi.createWheel(0x50);
+
+// Lights
+MmiLight mmiMediaLight(0x02, &mmi);
+MmiLight mmiNameLight(0x03, &mmi);
+MmiLight mmiTelLight(0x04, &mmi);
+MmiLight mmiNavLight(0x05, &mmi);
+MmiLight mmiInfoLight(0x06, &mmi);
+MmiLight mmiCarLight(0x07, &mmi);
+MmiLight mmiSetupLight(0x08, &mmi);
+MmiLight mmiTopLeftLight(0x0A, &mmi);
+MmiLight mmiBottomLeftLight(0x0B, &mmi);
+MmiLight mmiTopRightLight(0x0D, &mmi);
+MmiLight mmiBottomRightLight(0x0E, &mmi);
+MmiLight mmiRadioLight(0x18, &mmi);
 
 // ******************************************************* Audi MMI 3G ********************************************* 
 
-byte MMIbyte[8] = {0, 0, 0, 0, 0, 0, 0, 0}; // key byte sequence
 int Delay = 10; // delay in millisec
-int MMIcom = 0; // bool value set 1 if comand detected
-int ComID = 0;  // comand ID (for easy select case routine)
-int otvet = 0;  // id otveta
-int otvet2 = 0; // Keys vom Mega zum Teensy 3.5
 int current2;
-long millis_held2;    // How long the button was held (milliseconds)
-long secs_held2;      // How long the button was held (seconds)
-long prev_secs_held2; // How long the button was held in the previous check
 byte previous2 = HIGH;
 unsigned long firstTime2; // how long since the button was first pressed
 
@@ -21,129 +56,6 @@ unsigned long firstTime2; // how long since the button was first pressed
 int MMI = 0;
 int MediaPlayPause = 0;
 
-
-//*****************************************************   System Codes   *******************************************************************
-
-byte START_12V[8] = {0, 0x67, 0xFF, 0x1A, 0x02, 0xDF, 0xF2, 0xC5}; // Ответ пульта после подачи +12 67 FF 1A 02 DF F2 C5
-byte Pult_ON[8] =   {0, 0x10, 0x02, 0x70, 0x12, 0x10, 0x03, 0xA7}; // Команда включение пульта      10 02 70 12 10 03 A7
-
-byte Pult_ON_Otvet[8] = {0, 0x67, 0xFF, 0x2A, 0xDF, 0xF2, 0x4B, 0x00 }; // Ответ пульта после программного включения 67 FF 2A DF F2 4B 0
-byte Highlight_ILL[8] = {0x10, 0x02, 0x64, 0x99, 0x01, 0x10, 0x03, 0x23}; // Highlight Beleuchtung  10 02 64 99 01 10 03 23
-byte ILL_ON[8] =        {0x10, 0x02, 0x60, 0xFF, 0x10, 0x03, 0x84};       // beleuchtung all ON     10 02 60 FF 10 03 84
-byte ILL_OFF[8] =       {0x10, 0x02, 0x60, 0x00, 0x10, 0x03, 0x85};       // beleuchtung all OFF    10 02 60 00 01 10 03 85
-
-
-//*****************************************************   Tasten Codes   *******************************************************************
-byte ScrSho[8] = { 0, 0x67, 0x3A, 0xD2, 0xBE, 0xF2, 0x3D, 0x00};            // gedrÃ¼ckt     
-
-byte NAVI_DOWN[8] =   {0, 0x67, 0xFF, 0x3E, 0xF5, 0xDF, 0xF2, 0x4B};        // gedrÃ¼ckt     
-byte NAVI_1_DOWN[8] = {0, 0x67, 0xFF, 0x3A, 0xEA, 0xDF, 0xF2, 0x49};        // losgelassen  
-bool status_Navi_Taste = false;   // Navi-Taste Status Variable
-
-byte INFO_DOWN[8] =   {0, 0x67, 0xFF, 0x3E, 0xF3, 0xDF, 0xF2, 0x49};        // gedrÃ¼ckt              
-byte INFO_1_DOWN[8] = {0, 0x67, 0xFF, 0x3A, 0xE6, 0xDF, 0xF2, 0x47};        // losgelassen        
-bool status_INFO_Taste = false;   // Info-Taste Status Variable
-
-
-byte CAR_DOWN[8] =   {0, 0x67, 0xFF, 0x3E, 0xF1, 0xBE, 0xF2, 0x47};         // gedrÃ¼ckt      
-byte CAR_1_DOWN[8] = {0, 0x67, 0xFF, 0x3A, 0xE2, 0xBE, 0xF2, 0x45};         // losgelassen  
-bool status_CAR_Taste = false;   // Car-Taste Status Variable
-
-byte SETUP_DOWN[8] =    {0, 0x67, 0xFF, 0x3E, 0xEF, 0xBE, 0xF2, 0x45};      // gedrÃ¼ckt     
-byte SETUP_1_DOWN[8] = {0, 0x67, 0xFF, 0x3A, 0xDE, 0xBE, 0xF2, 0x43};       // losgelassen  
-bool status_SETUP_Taste = false;   // Setup-Taste Status Variable
-
-byte RADIO_DOWN[8] =   {0, 0x67, 0xFF, 0x3E, 0xCF, 0xDF, 0xF2, 0x25};       // gedrÃ¼ckt   
-byte RADIO_1_DOWN[8] = {0, 0x67, 0xFF, 0x3A, 0x9E, 0xDF, 0xF2, 0x23};       // losgelassen 
-bool status_RADIO_Taste = false;   // Radio-Taste Status Variable
-
-byte MEDIA_DOWN[8] =   {0, 0x67, 0xFF, 0x3E, 0xFB, 0xBE, 0xF2, 0x51};       // gedrÃ¼ckt     
-byte MEDIA_1_DOWN[8] = {0, 0x67, 0xFF, 0x3A, 0xF6, 0xBE, 0xF2, 0x4F};       // losgelassen  
-bool status_MEDIA_Taste = false;   // Media-Taste Status Variable
-
-byte NAME_DOWN[8] =   {0, 0x67, 0xFF, 0x3E, 0xF9, 0xDF, 0xF2, 0x4F};        // gedrÃ¼ckt     
-byte NAME_1_DOWN[8] = {0, 0x67, 0xFF, 0x3A, 0xF2, 0xDF, 0xF2, 0x4D};        // losgelassen  
-bool status_NAME_Taste = false;   // Name-Taste Status Variable
-
-byte TEL_DOWN[8] =   {0, 0x67, 0xFF, 0x3E, 0xF7, 0xBE, 0xF2, 0x4D};         // gedrÃ¼ckt        
-byte TEL_1_DOWN[8] = {0, 0x67, 0xFF, 0x3A, 0xEE, 0xBE, 0xF2, 0x4B};         // losgelassen  
-bool status_TEL_Taste = false;   // Tel-Taste Status Variable
-
-byte LeftReturn_DOWN[8] =   {0, 0x67, 0xFF, 0x3E, 0xE7, 0xDF, 0xF2, 0x3D};  // gedrÃ¼ckt      
-byte LeftReturn_1_DOWN[8] = {0, 0x67, 0xFF, 0x3A, 0xCE, 0xDF, 0xF2, 0x3B};  // losgelassen   
-
-byte Return_DOWN[8] =   {0, 0x67, 0xFF, 0x3E, 0xE1, 0xDF, 0xF2, 0x37};      // gedrÃ¼ckt        
-byte Return_1_DOWN[8] = {0, 0x67, 0xFF, 0x3A, 0xC2, 0xDF, 0xF2, 0x35};      // losgelassen   
-
-byte RightReturn_DOWN[8] =   {0, 0x67, 0xFF, 0x3E, 0xDF, 0xBE, 0xBE, 0xF2}; // gedrÃ¼ckt       
-byte RightReturn_1_DOWN[8] = {0, 0x67, 0xFF, 0x3A, 0xBE, 0xBE, 0xBE, 0xF2}; // losgelassen   
-
-byte Big_Left[8] =   {0, 0x67, 0xFF, 0xBA, 0xFA, 0xBE, 0xF2, 0x11};         //               
-byte Big_DOWN[8] =   {0, 0x67, 0xFF, 0x3E, 0xFD, 0xBE, 0xF2, 0x53};         // gedrÃ¼ckt                   
-byte Big_1_DOWN[8] = {0, 0x67, 0xFF, 0x3A, 0xFA, 0xBE, 0xF2, 0x51};         // losgelassen           
-byte Big_Right[8] =  {0, 0x67, 0xFF, 0xBE, 0xFD, 0xBE, 0xF2, 0x13};         //      
-
-byte Small_Left[8] =   {0, 0x67, 0xFF, 0xFA, 0xFD, 0xBE, 0xF2, 0x31};       //                  
-byte Small_Right[8] =  {0, 0x67, 0xFF, 0xFE, 0xFA, 0xBE, 0xF2, 0x33};       //                  
-byte Small_DOWN[8] =   {0, 0x67, 0xFF, 0x3E, 0x8F, 0xBE, 0xF2, 0xE5};       // gedrÃ¼ckt             
-byte Small_1_DOWN[8] = {0, 0x67, 0xFF, 0x3A, 0x1E, 0xBE, 0xF2, 0xE3};       // losgelassen 
-bool status_SmallDown_Taste = false;   // Small-Down-Taste Status Variable      
-
-byte LeftUP_DOWN[8] =   {0, 0x67, 0xFF, 0x3E, 0xEB, 0xDF, 0xF2, 0x41};      // gedrÃ¼ckt     
-byte LeftUP_1_DOWN[8] = {0, 0x67, 0xFF, 0x3A, 0xD6, 0xDF, 0xF2, 0x3F};      // losgelassen    
-bool status_LeftUP_Taste = false;   // Left-Up-Taste Status Variable
-
-byte LeftDown_DOWN[8] =   {0, 0x67, 0xFF, 0x3E, 0xE9, 0xBE, 0xF2, 0x3F};    // gedrÃ¼ckt       
-byte LeftDown_1_DOWN[8] = {0, 0x67, 0xFF, 0x3A, 0xD2, 0xBE, 0xF2, 0x3D};    // losgelassen   
-bool status_LeftDown_Taste = false;   // Left-Down-Taste Status Variable
-
-byte RightUP_DOWN[8] =   {0, 0x67, 0xFF, 0x3E, 0xE5, 0xBE, 0xF2, 0x3B};     // gedrÃ¼ckt    
-byte RightUP_1_DOWN[8] = {0, 0x67, 0xFF, 0x3A, 0xCA, 0xBE, 0xF2, 0x39};     // losgelassen 
-bool status_RightUP_Taste = false;   // Right-UP-Taste Status Variable
-
-byte RightDown_DOWN[8] =   {0, 0x67, 0xFF, 0x3E, 0xE3, 0xBE, 0xF2, 0x39};   // gedrÃ¼ckt
-byte RightDown_1_DOWN[8] = {0, 0x67, 0xFF, 0x3A, 0xC6, 0xBE, 0xF2, 0x37};   // losgelassen
-bool status_RightDown_Taste = false;   // Right-Down-Taste Status Variable
-
-
-//*****************************************************   Licht/Lampen Codes   **************************************************************
-
-byte NAVI_ON[8] =  {0x10, 0x02, 0x68, 0x01, 0x05, 0x10, 0x03, 0x93};  
-byte NAVI_OFF[8] = {0x10, 0x02, 0x68, 0x00, 0x05, 0x10, 0x03, 0x92}; 
-
-byte INFO_ON[8] =  {0x10, 0x02, 0x68, 0x01, 0x06, 0x10, 0x03, 0x94};  
-byte INFO_OFF[8] = {0x10, 0x02, 0x68, 0x00, 0x06, 0x10, 0x03 , 0x93};
-
-byte CAR_ON[8] =  {0x10, 0x02, 0x68, 0x01, 0x07, 0x10, 0x03, 0x95};    
-byte CAR_OFF[8] = {0x10, 0x02, 0x68, 0x00, 0x07, 0x10, 0x03, 0x94};   
-
-byte SETUP_ON[8] =  {0x10, 0x02, 0x68, 0x01, 0x08, 0x10, 0x03, 0x96}; 
-byte SETUP_OFF[8] = {0x10, 0x02, 0x68, 0x00, 0x08, 0x10, 0x03, 0x95};   
-
-byte RADIO_ON[8] =  {0x10, 0x02, 0x68, 0x01, 0x18, 0x10, 0x03, 0xA6}; 
-byte RADIO_OFF[8] = {0x10, 0x02, 0x68, 0x00, 0x18, 0x10, 0x03, 0xA5};  
-
-byte MEDIA_ON[8] =  {0x10, 0x02, 0x68, 0x01, 0x02, 0x10, 0x03, 0x90}; 
-byte MEDIA_OFF[8] = {0x10, 0x02, 0x68, 0x00, 0x02, 0x10, 0x03, 0x8F}; 
-
-byte NAME_ON[8] =  {0x10, 0x02, 0x68, 0x01, 0x03, 0x10, 0x03, 0x91};
-byte NAME_OFF[8] = {0x10, 0x02, 0x68, 0x00, 0x03, 0x10, 0x03, 0x90};
-
-byte TEL_ON[8] =  {0x10, 0x02, 0x68, 0x01, 0x04, 0x10, 0x03, 0x92};   
-byte TEL_OFF[8] = {0x10, 0x02, 0x68, 0x00, 0x04, 0x10, 0x03, 0x91};
-
-byte LeftUP_ON[8] =  {0x10, 0x02, 0x68, 0x01, 0x0A, 0x10, 0x03, 0x98}; 
-byte LeftUP_OFF[8] = {0x10, 0x02, 0x68, 0x00, 0x0A, 0x10, 0x03, 0x97}; 
-
-byte LeftDown_ON[8] =  {0x10, 0x02, 0x68, 0x01, 0x0B, 0x10, 0x03, 0x99}; 
-byte LeftDown_OFF[8] = {0x10, 0x02, 0x68, 0x00, 0x0B, 0x10, 0x03, 0x98};
-
-byte RightUP_ON[8] =  {0x10, 0x02, 0x68, 0x01, 0x0D, 0x10, 0x03, 0x9B}; 
-byte RightUP_OFF[8] = {0x10, 0x02, 0x68, 0x00, 0x0D, 0x10, 0x03, 0x9A};
-
-byte RightDown_ON[8] =  {0x10, 0x02, 0x68, 0x01, 0x0E, 0x10, 0x03, 0x9C}; 
-byte RightDown_OFF[8] = {0x10, 0x02, 0x68, 0x00, 0x0E, 0x10, 0x03, 0x9B}; 
-
 //*************************************************  beleuchtung   ******************************************
 const byte ILL_Pin = 37;                      // eingang beleuchtungsschalter 12V  OK
 
@@ -151,12 +63,6 @@ byte dimValue;
 const byte Pin_DimUp = 45;                   // Taster Dim Heller  OK
 const byte Pin_DimDown = 46;                 // Taster Dim Dunkler  OK
 int bel_Pin = 21; // 12V Dim Analog
-
-// *************************** MMI Beleuchtung Ã¤ndern ******
-// ****** Info: http://www.carpc-portal.de/forum/thread-369-page-3.html
-byte Beleuchtung_enable[7] =     {0x10, 0x02, 0x70, 0x12, 0x10, 0x03, 0xA7};   // aktivieren der Taster-Beleuchtung
-byte Beleuchtungshelligkeit[7] = {0x10, 0x02, 0x60, 0x80, 0x10, 0x03, 0x05};   // 50% Helligkeit Startwert
-byte Beleuchtung_disable[7] =    {0x10, 0x02, 0x70, 0x11, 0x10, 0x03, 0xA6};   // deaktivieren der Taster-Beleuchtung
 
 // ************************ ENGINE START BUTTON ********************************
 
@@ -222,8 +128,8 @@ int ZvLock = 22;                            // Verriegeln // gedrÃ¼ckt 5V // l
 int LOCK_RLY = 27;                          // OK
 int UNLOCK_RLY = 28;                        // OK
 int ZvUnlock = 23;                          // Entriegeln // gedrÃ¼ckt 5V // losgelassen 0V  OK
-DigitalButton zvLockButton(ZvLock, INPUT, HIGH);
-DigitalButton zvUnlockButton(ZvUnlock, INPUT, HIGH);
+Button zvLockButton(new InputTrigger(ZvLock));
+Button zvUnlockButton(new InputTrigger(ZvUnlock));
 TimedOutput lockRelay(LOCK_RLY, HIGH);
 TimedOutput unlockRelay(UNLOCK_RLY, HIGH);
 int fob_did = 0;
@@ -259,10 +165,7 @@ int KLIMA_LED = 47;                     // kontroll LED für Klima "AN" (HVAC 3)
  
 // ******  Sketch ****** //  
 
-void setup()
-{
-
-  Serial5.begin(9600,SERIAL_8N1);                      // verbindung zum Audi MMI 3G 
+void setup() {
   Serial.begin(9600);                       // Serial Monitor
   Serial.println("Goodnight moon!");
   //Serial2.begin(9600);                      // verbindung zum Teensy 3.5          
@@ -339,832 +242,149 @@ pinMode(UMLUFT_FRE_LED, OUTPUT);
 pinMode(UMLUFT_REC_LED, OUTPUT);
 //pinMode(KLIMA_SW, INPUT);
 pinMode(KLIMA_LED, OUTPUT);
-
-
 }
-void loop()
-{  
+
+void loop() {  
+  updateMmi();
+  
   ILL_Beleuchtung();
+  dimValue = Taster_Dimming();          
+  mmi.setIllumination(dimValue);
 
   Engine_Start_Button();
-
-  
 
   SWC();                           // Steering Wheel Control
 
   FOB();                           // Funkfernbedienung
+}
 
- dimValue = Taster_Dimming();          // Dimming Tasten abfragen
 
-  //                            +- Name des zu modifizierenden 7 Byte langen Arrays
-  //                            |                 +- Wert der neuen Helligkeit
-  //                            |                 |     +- Indexposition des Helligkeitswertes
-  //                            |                 |     |        
-  aendere_Helligkeit (Beleuchtungshelligkeit, dimValue, 3);   // MMI Helligkeit Ã¤ndern  
+  ///////////////////
+ // MMI FUNCTIONS // 
+///////////////////
 
+void updateMmi() {
+  mmi.update(mmiEvent);
   
-  
-  if (Serial.available()) {
-    Serial5.write(Serial.read());
-    }
-  else
-
- 
-  if (Serial5.available() && MMIcom == 0) {
-    ReadMMI();
-    
+  if (mmiNavButton->wasPressedTimes(1)) {
+    mmiNavLight.toggle();
   }
-  else 
-  
-  {
-    switch (otvet) 
-    {
-      case 1:
-        delay (5);
-        WriteMMI(Pult_ON, 8);
-        break;
-
-      case 2:
-        delay(5);
-        WriteMMI(Highlight_ILL, 8);
-        break;
-
-      case 3:
-        delay (5);
-        if (status_Navi_Taste == false) { // wenn vorher OFF, dann ON-Code ausfÃ¼hren
-          WriteMMI(NAVI_ON, 8);
-          status_Navi_Taste = true;       // Status umschalten          
-          Serial.println("NAVI-ON") ;
-                         
-        }
-        else {
-          WriteMMI(NAVI_OFF, 8);          // wenn vorher ON, dann OFF-Code ausfÃ¼hren
-          status_Navi_Taste = false;      // Status umschalten
-          Serial.println("NAVI-OFF") ;
-          
-          
-        }
-        break;
-        
-      case 4:
-        delay (5);
-        if (status_INFO_Taste == false) { // wenn vorher OFF, dann ON-Code ausfÃ¼hren
-          WriteMMI(INFO_ON, 8);
-          status_INFO_Taste = true;       // Status umschalten
-          Serial.println("INFO-ON") ;
-        }
-        else {
-          WriteMMI(INFO_OFF, 8);          // wenn vorher ON, dann OFF-Code ausfÃ¼hren
-          status_INFO_Taste = false;      // Status umschalten
-          Serial.println("INFO-OFF") ;
-        }
-        break;
-        
-      case 5:
-        delay (5);
-        if (status_CAR_Taste == false) { // wenn vorher OFF, dann ON-Code ausfÃ¼hren
-          WriteMMI(CAR_ON, 8);
-          status_CAR_Taste = true;       // Status umschalten
-          Serial.println("CAR-ON") ;
-        }
-        else {
-          WriteMMI(CAR_OFF, 8);          // wenn vorher ON, dann OFF-Code ausfÃ¼hren
-          status_CAR_Taste = false;      // Status umschalten
-          Serial.println("CAR-OFF") ;
-        }
-        break;
-        
-      case 6:
-        delay (5);
-        if (status_SETUP_Taste == false) { // wenn vorher OFF, dann ON-Code ausfÃ¼hren
-          WriteMMI(SETUP_ON, 8);
-          status_SETUP_Taste = true;       // Status umschalten
-          Serial.println("SETUP-ON") ;
-        }
-        else {
-          WriteMMI(SETUP_OFF, 8);          // wenn vorher ON, dann OFF-Code ausfÃ¼hren
-          status_SETUP_Taste = false;      // Status umschalten
-          Serial.println("SETUP-OFF") ;
-        }
-        break;
-        
-      case 7:
-        delay (5);
-        if (status_RADIO_Taste == false) { // wenn vorher OFF, dann ON-Code ausfÃ¼hren
-          WriteMMI(RADIO_ON, 8);
-          WriteMMI(ILL_ON, 8);
-          status_RADIO_Taste = true;       // Status umschalten
-          Serial.println("RADIO-ON");
-        }
-        else {
-          WriteMMI(RADIO_OFF, 8);          // wenn vorher ON, dann OFF-Code ausfÃ¼hren
-          status_RADIO_Taste = false;      // Status umschalten
-          Serial.println("RADIO-OFF") ;
-        }
-        break;
-        
-      case 8:
-        delay (5);
-        if (status_MEDIA_Taste == false) { // wenn vorher OFF, dann ON-Code ausfÃ¼hren
-          WriteMMI(MEDIA_ON, 8);
-          status_MEDIA_Taste = true;       // Status umschalten
-          Serial.println("MEDIA-ON") ;
-        }
-        else {
-          WriteMMI(MEDIA_OFF, 8);          // wenn vorher ON, dann OFF-Code ausfÃ¼hren
-          status_MEDIA_Taste = false;      // Status umschalten
-          Serial.println("MEDIA-OFF") ;
-        }
-        break;
-        
-      case 9:
-        delay (5);
-        if (status_NAME_Taste == false) { // wenn vorher OFF, dann ON-Code ausfÃ¼hren
-          WriteMMI(NAME_ON, 8);
-          status_NAME_Taste = true;       // Status umschalten
-          Serial.println("NAME-ON") ;
-        }
-        else {
-          WriteMMI(NAME_OFF, 8);          // wenn vorher ON, dann OFF-Code ausfÃ¼hren
-          status_NAME_Taste = false;      // Status umschalten
-          Serial.println("NAME-OFF") ;
-        }
-        break;
-        
-      case 10:
-        delay (5);
-        if (status_TEL_Taste == false) { // wenn vorher OFF, dann ON-Code ausfÃ¼hren
-          WriteMMI(TEL_ON, 8);
-          status_TEL_Taste = true;       // Status umschalten
-          Serial.println("TEL-ON") ;
-          //Serial2.print( otvet2 = 14, HEX);
-        }
-        else {
-          WriteMMI(TEL_OFF, 8);          // wenn vorher ON, dann OFF-Code ausfÃ¼hren
-          status_TEL_Taste = false;      // Status umschalten
-          Serial.println("TEL-OFF") ;
-        }
-        break;
-        
-      case 11:
-        delay (5);
-        if (status_LeftUP_Taste == false) { // wenn vorher OFF, dann ON-Code ausfÃ¼hren
-          WriteMMI(LeftUP_ON, 8);
-          status_LeftUP_Taste = true;       // Status umschalten
-          Serial.println("Links-OBEN-ON") ;
-          //Serial2.print( otvet2 = 12, HEX);
-        }
-        else {
-          WriteMMI(LeftUP_OFF, 8);          // wenn vorher ON, dann OFF-Code ausfÃ¼hren
-          status_LeftUP_Taste = false;      // Status umschalten
-          Serial.println("Links-Oben-OFF") ;
-          
-        }
-        break;
-        
-      case 12:
-        delay (5);
-        if (status_LeftDown_Taste == false) { // wenn vorher OFF, dann ON-Code ausfÃ¼hren
-          WriteMMI(LeftDown_ON, 8);
-          status_LeftDown_Taste = true;       // Status umschalten
-          Serial.println("Links-Unten-ON") ;
-        }
-        else {
-          WriteMMI(LeftDown_OFF, 8);          // wenn vorher ON, dann OFF-Code ausfÃ¼hren
-          status_LeftDown_Taste = false;      // Status umschalten
-          Serial.println("Links-Unten-OFF") ;
-        }
-        break;
-        
-      case 13:
-        delay (5);
-        if (status_RightUP_Taste == false) { // wenn vorher OFF, dann ON-Code ausfÃ¼hren
-          WriteMMI(RightUP_ON, 8);
-          status_RightUP_Taste = true;       // Status umschalten
-          Serial.println("Rechts-Oben-ON") ;
-          //Serial2.print( otvet2 = 13, HEX);
-        }
-        else {
-          WriteMMI(RightUP_OFF, 8);          // wenn vorher ON, dann OFF-Code ausfÃ¼hren
-          status_RightUP_Taste = false;      // Status umschalten
-          Serial.println("Rechts-Oben-OFF") ;
-        }
-        break;
-        
-      case 14:
-        delay (5);
-        if (status_RightDown_Taste == false) { // wenn vorher OFF, dann ON-Code ausfÃ¼hren
-          WriteMMI(RightDown_ON, 8);
-          status_RightDown_Taste = true;       // Status umschalten
-          Serial.println("Rechts-Unten-ON") ;
-        }
-        else {
-          WriteMMI(RightDown_OFF, 8);          // wenn vorher ON, dann OFF-Code ausfÃ¼hren
-          status_RightDown_Taste = false;      // Status umschalten
-          Serial.println("Rechts-Unten-OFF") ;
-        }
-        break;
-        
-      case 15:
-        delay (5);
-        Serial.println("Left-Return") ;
-        //Keyboard.press(KEY_MEDIA_PREV_TRACK); // linke taste ganz unten
-        //Keyboard.release(KEY_MEDIA_PREV_TRACK);
-        break;
-      case 16:
-        delay (5);
-        Serial.println("Return") ;
-        //Keyboard.press(KEY_ESC);  // taste ganz unten in der mitte
-        //Keyboard.release(KEY_ESC);
-        break;
-      case 17:
-        delay (5);
-        Serial.println("Right-Return") ;
-        //Keyboard.press(KEY_MEDIA_NEXT_TRACK);  // rechte taste ganz unten
-        //Keyboard.release(KEY_MEDIA_NEXT_TRACK);
-        delay(5);
-        //Keyboard.press(KEY_MEDIA_PLAY_SKIP);
-        //Keyboard.release(KEY_MEDIA_PLAY_SKIP);
-        break;
-      case 18:
-        delay (5);
-        Serial.println("Big-Left") ;
-        //Keyboard.press(MODIFIERKEY_SHIFT);    // großer drehregler nach links
-        //Keyboard.press(KEY_TAB);    
-        //Keyboard.release(KEY_TAB);
-        //Keyboard.release(MODIFIERKEY_SHIFT);
-        break;  
-      case 19:
-        delay (5);
-        Serial.println("BIG_DOWN") ;
-         {
-        //Keyboard.press(KEY_ENTER); // großer drehregler
-        //Keyboard.release(KEY_ENTER);
-      
-      
-      if(MediaPlayPause == 0 && (MMI == 0x36)) { 
-          //Keyboard.press(KEY_MEDIA_PLAY);
-          //Keyboard.release(KEY_MEDIA_PLAY);      
-          Serial.println("MEDIA_PLAY") ;
-          MediaPlayPause ++;
-          
-        }else
-        if(MediaPlayPause == 1 && (MMI == 0x36)) {
-          //Keyboard.press(KEY_MEDIA_PLAY_PAUSE);
-          //Keyboard.release(KEY_MEDIA_PLAY_PAUSE);     
-          Serial.println("MEDIA_PAUSE") ;
-          MediaPlayPause --;
-        }
-        }
-        break;
-      case 20:
-        delay (5);
-        Serial.println("Big-Right") ;
-        //Keyboard.press(KEY_TAB);    // großer drehregler nach rechts
-        //Keyboard.release(KEY_TAB);
-        break;
-      case 21:
-        delay (5);
-        Serial.println("Volume-Down") ;
-        //Keyboard.press(KEY_MEDIA_VOLUME_DEC);  // kleiner regler nach rechts
-        //Keyboard.release(KEY_MEDIA_VOLUME_DEC);
-        break;
-      case 22:
-        delay (5);
-        Serial.println("Volume-Up") ;
-        //Keyboard.press(KEY_MEDIA_VOLUME_INC);  // kleiner regler nach links
-        //Keyboard.release(KEY_MEDIA_VOLUME_INC);
-        break;
-      case 23:
-        delay (5);
-        if (status_SmallDown_Taste == false) { // wenn vorher OFF, dann ON-Code ausfÃ¼hren
-          WriteMMI(Small_1_DOWN, 8);
-          status_SmallDown_Taste = true;       // Status umschalten
-          Serial.println("MUTE-ON") ;
-          //Keyboard.press(KEY_MEDIA_MUTE); // kleiner drehregler
-          //Keyboard.release(KEY_MEDIA_MUTE);
-          
-        }
-        else if (status_SmallDown_Taste == true){
-          WriteMMI(Small_1_DOWN, 8);          // wenn vorher ON, dann OFF-Code ausfÃ¼hren
-          status_SmallDown_Taste = false;      // Status umschalten
-          Serial.println("MUTE-OFF") ;
-          //Keyboard.press(KEY_MEDIA_MUTE); // kleiner drehregler
-          //Keyboard.release(KEY_MEDIA_MUTE);
-        }
-        
-        break;
-
-      case 24:
-         
-           
-        delay (5);
-        break;
-            
-
-      case 0:
-        // Dummy fÃ¼r Idle Zustand
-        break;
-        
-      default:                                // fÃ¼r ungÃ¼ltige otvet  
-        Serial.print(otvet); Serial.println(F(" otvet ungÃ¼ltig"));
-        break; 
-
-    }
-    //Keyboard.releaseAll();
-    otvet = 0;
+  if (mmiInfoButton->wasPressedTimes(1)) {
+    mmiInfoLight.toggle();
   }
-
-
-
-  if (MMIcom == 1)
-  {
-    switch (ComID) // Ð¾Ð±Ñ€Ð°Ð±Ð°Ñ‚Ñ‹Ð²Ð°ÐµÐ¼ ÐºÐ¾Ð¼Ð°Ð½Ð´Ñ‹, ÐžÑ�Ð½Ð¾Ð²Ð½Ñ‹Ðµ Case Ñ�Ñ‚Ð¾ 1 Ð¸ 2 , Ð¾Ñ�Ñ‚Ð°Ð»ÑŒÐ½Ñ‹Ðµ Ñ�Ð²Ñ�Ð·Ð°Ð½Ñ‹ Ñ� ÐºÐ½Ð¾Ð¿ÐºÐ°Ð¼Ð¸. Ð¡ÐµÐ¹Ñ‡Ð°Ñ� Ñ� Ð¸Ñ… Ð¸Ñ�Ð¿Ð¾Ð»ÑŒÐ·ÑƒÑŽ Ñ‡Ñ‚Ð¾ Ð±Ñ‹ Ð·Ð°Ð¶Ð¸Ð³Ð°Ñ‚ÑŒ Ð»Ð°Ð¼Ð¿Ð¾Ñ‡ÐºÐ¸ Ð²Ð¾Ð·Ð»Ðµ ÐºÐ½Ð¾Ð¿Ð¾Ðº.
-      //   ************************************************************** Ð²Ð¿Ñ€Ð¸Ð½Ñ†Ð¸Ð¿Ðµ Ð¸Ñ… Ð¼Ð¾Ð¶Ð½Ð¾ Ð½Ðµ Ð¸Ñ�Ð¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÑŒ, Ð»Ð¸Ð±Ð¾ Ð¸Ñ�Ð¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ñ‚ÑŒ ÐµÑ�Ð»Ð¸ Ð½ÑƒÐ¶Ð½Ð° Ð¾Ð±Ñ€Ð°Ð±Ð¾Ñ‚ÐºÐ° Ð´Ð»Ð¸Ð½Ð½Ñ‹Ñ… Ð½Ð°Ð¶Ð°Ñ‚Ð¸Ð¹.
-    {
-      case 100:
-        SerialPrintKey();
-        Serial5.write(06);
-        break;
-
-      case 1:
-      SerialPrintKey();
-        Serial5.write(06);
-        otvet = 1;
-        break;
-
-      case 2:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 2;
-        break;
-
-      case 3:
-        SerialPrintKey();
-        Serial5.write(06);
-        break;
-
-      case 4:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 3;
-        break;
-
-      case 5:
-        SerialPrintKey();
-        Serial5.write(06);
-        break;
-
-      case 6:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 4;
-        break;
-
-      case 7:
-        SerialPrintKey();
-        Serial5.write(06);
-        break;
-
-      case 8:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 5;
-        break;
-
-      case 9:
-        SerialPrintKey();
-        Serial5.write(06);
-        break;
-
-      case 10:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 6;
-        break;
-        
-      case 11:
-        SerialPrintKey();
-        Serial5.write(06);
-
-        break;
-
-      case 12:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 7;
-        break;
-
-      case 13:
-        SerialPrintKey();
-        Serial5.write(06);
-        break;
-
-      case 14:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 8;
-        break;
-
-      case 15:
-        SerialPrintKey();
-        Serial5.write(06);
-        break;
-
-      case 16:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 9;
-        break;
-
-      case 17:
-        SerialPrintKey();
-        Serial5.write(06);
-        break;
-
-      case 18:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 10;
-        break;
-
-      case 19:
-        SerialPrintKey();
-        Serial5.write(06);
-        break;
-
-      case 20:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 15;
-        break;
-
-      case 21:
-        SerialPrintKey();
-        Serial5.write(06);
-        break;
-
-      case 22:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 16;
-        break;
-
-      case 23:
-        SerialPrintKey();
-        Serial5.write(06);
-        break;
-
-      case 24:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 17;
-        break;
-
-      case 25:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 18;
-        break;
-
-      case 26:
-        SerialPrintKey();
-        Serial5.write(06);
-        break;
-
-      case 27:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 19;
-        break;
-
-      case 28:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 20;
-        break;
-
-      case 29:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 21;
-        break;
-
-      case 30:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 22;
-        break;
-
-      case 31:
-        SerialPrintKey();
-        Serial5.write(06);
-        break;
-
-      case 32:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 23;
-        break;
-
-      case 33:
-        SerialPrintKey();
-        Serial5.write(06);
-        break;
-
-      case 34:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 11;
-        break;
-
-      case 35:
-        SerialPrintKey();
-        Serial5.write(06);
-        break;
-
-      case 36:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 12;
-        break;
-        
-      case 37:
-        SerialPrintKey();
-        Serial5.write(06);
-        break;
-        
-      case 38:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 13;
-        break;
-
-      case 39:
-        SerialPrintKey();
-        Serial5.write(06);
-        break;
-
-      case 40:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 14;
-        break;
-
-      case 41:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 24;
-        break;
-
-      case 42:
-        SerialPrintKey();
-        Serial5.write(06);
-        otvet = 50;
-        break;
-
-      default:                                // fÃ¼r ungÃ¼ltige ComID  
-        Serial.print(ComID); Serial.println(F(" ComID ungÃ¼ltig"));
-        break; 
-
+  if (mmiCarButton->wasPressedTimes(1)) {
+    mmiCarLight.toggle();
+  }
+  if (mmiSetupButton->wasPressedTimes(1)) {
+    mmiSetupLight.toggle();
+  }
+  if (mmiRadioButton->wasPressedTimes(1)) {
+    mmiRadioLight.toggle();
+    mmi.setIllumination(mmiRadioLight.isOn() ? 0xFF : 0x00);
+  }
+  if (mmiMediaButton->wasPressedTimes(1)) {
+    mmiMediaLight.toggle();
+  }
+  if (mmiNameButton->wasPressedTimes(1)) {
+    mmiNameLight.toggle();
+  }
+  if (mmiTelButton->wasPressedTimes(1)) {
+    mmiTelLight.toggle();
+  }
+  if (mmiTopLeftButton->wasPressedTimes(1)) {
+    mmiTopLeftLight.toggle();
+  }
+  if (mmiTopRightButton->wasPressedTimes(1)) {
+    mmiTopRightLight.toggle();
+  }
+  if (mmiBottomLeftButton->wasPressedTimes(1)) {
+    mmiBottomLeftLight.toggle();
+  }
+  if (mmiBottomRightButton->wasPressedTimes(1)) {
+    mmiBottomRightLight.toggle();
+  }
+  if (mmiPreviousButton->wasPressedTimes(1)) {
+    Keyboard.press(KEY_MEDIA_PREV_TRACK);
+    Keyboard.release(KEY_MEDIA_PREV_TRACK);
+  }
+  if (mmiReturnButton->wasPressedTimes(1)) {
+    Keyboard.press(KEY_ESC);
+    Keyboard.release(KEY_ESC);
+  }
+  if (mmiNextButton->wasPressedTimes(1)) {
+    Keyboard.press(KEY_MEDIA_NEXT_TRACK);
+    Keyboard.release(KEY_MEDIA_NEXT_TRACK);
+  }
+  if (mmiNextButton->wasPressedTimes(2)) {
+    Keyboard.press(KEY_MEDIA_PLAY_SKIP);
+    Keyboard.release(KEY_MEDIA_PLAY_SKIP);
+  }
+  
+  if (mmiBigWheel->wasTurned()) {
+    if (mmiBigWheel->getAmount() < 0) {
+      Keyboard.press(MODIFIERKEY_SHIFT);
+      Keyboard.press(KEY_TAB);    
+      Keyboard.release(KEY_TAB);
+      Keyboard.release(MODIFIERKEY_SHIFT);    
     }
-
-    MMIcom = 0;
-    Serial5.flush();
+    else {
+      Keyboard.press(KEY_TAB);    
+      Keyboard.release(KEY_TAB);
+    }
+  }
+  if (mmiBigWheelButton->wasPressedTimes(1)) {
+    if(MediaPlayPause == 0 && (MMI == 0x36)) { 
+      Keyboard.press(KEY_MEDIA_PLAY);
+      Keyboard.release(KEY_MEDIA_PLAY);      
+      Serial.println("MEDIA_PLAY") ;
+      MediaPlayPause ++;
+    }
+    else if(MediaPlayPause == 1 && (MMI == 0x36)) {
+      Keyboard.press(KEY_MEDIA_PLAY_PAUSE);
+      Keyboard.release(KEY_MEDIA_PLAY_PAUSE);     
+      Serial.println("MEDIA_PAUSE") ;
+      MediaPlayPause --;
+    }
+  }
+  
+  if (mmiSmallWheel->wasTurned()) {
+    if (mmiSmallWheel->getAmount() < 0) {
+      Keyboard.press(KEY_MEDIA_VOLUME_DEC);
+      Keyboard.release(KEY_MEDIA_VOLUME_DEC);
+    }
+    else {
+      Keyboard.press(KEY_MEDIA_VOLUME_INC);
+      Keyboard.release(KEY_MEDIA_VOLUME_INC);
+    }
+  }
+  if (mmiSmallWheelButton->wasPressedTimes(1)) {
+    Keyboard.press(KEY_MEDIA_MUTE);
+    Keyboard.release(KEY_MEDIA_MUTE);
   }
 }
 
-void ReadMMI()
-{
-  byte MMIreceiveByte = Serial5.read();    //read 1-st byte Ð•Ñ�Ð»Ð¸ 67 Ñ‚Ð¾ Ñ�Ñ‚Ð¾ Ð¿ÑƒÐ»ÑŒÑ‚
-  if (MMIreceiveByte == 0x67)
-  {
-    MMIbyte[1] = 0x67;
-    for (int i = 2; i <= 7; i++)
-    {
-      MMIbyte[i] = Serial5.read();    //read  2,3,4,5,6,7 bytes of data   -  Ñ‡Ð¸Ñ‚Ð°ÐµÐ¼ Ñ�Ð»ÐµÐ´ÑƒÑŽÑ‰Ð¸Ðµ Ð±Ð°Ð¹Ñ‚Ñ‹
-      delay(Delay);
-    }
-
-    ComID = 100; // Ð¿Ð¾ ÑƒÐ¼Ð¾Ð»Ñ‡Ð°Ð½Ð¸ÑŽ Ð½Ðµ Ð¾Ð¿Ð¾Ð·Ð½Ð°Ð½Ñ‹Ð¹ ÐºÐ¾Ð´
-
-    if (memcmp(MMIbyte, START_12V, 8) == 0 ) {
-      ComID = 1;
-    }
-    if (memcmp(MMIbyte, Pult_ON_Otvet, 8) == 0 ) {
-      ComID = 2;
-    }
-    if (memcmp(MMIbyte, NAVI_DOWN, 8) == 0 ) {
-      ComID = 3;
-    }
-    if (memcmp(MMIbyte, NAVI_1_DOWN, 8) == 0 ) {
-      ComID = 4;
-    }
-    if (memcmp(MMIbyte, INFO_DOWN, 8) == 0 ) {
-      ComID = 5;
-    }
-    if (memcmp(MMIbyte, INFO_1_DOWN, 8) == 0 ) {
-      ComID = 6;
-    }
-    if (memcmp(MMIbyte, CAR_DOWN, 8) == 0 ) {
-      ComID = 7;
-    }
-    if (memcmp(MMIbyte, CAR_1_DOWN, 8) == 0 ) {
-      ComID = 8;
-    }
-    if (memcmp(MMIbyte, SETUP_DOWN, 8) == 0 ) {
-      ComID = 9;
-    }
-    if (memcmp(MMIbyte, SETUP_1_DOWN, 8) == 0 ) {
-      ComID = 10;
-    }
-    if (memcmp(MMIbyte, RADIO_DOWN, 8) == 0 ) {
-      ComID = 11;
-    }
-    if (memcmp(MMIbyte, RADIO_1_DOWN, 8) == 0 ) {
-      ComID = 12;
-    }
-    if (memcmp(MMIbyte, MEDIA_DOWN, 8) == 0 ) {
-      ComID = 13;
-    }
-    if (memcmp(MMIbyte, MEDIA_1_DOWN, 8) == 0 ) {
-      ComID = 14;
-    }
-    if (memcmp(MMIbyte, NAME_DOWN, 8) == 0 ) {
-      ComID = 15;
-    }
-    if (memcmp(MMIbyte, NAME_1_DOWN, 8) == 0 ) {
-      ComID = 16;
-    }
-    if (memcmp(MMIbyte, TEL_DOWN, 8) == 0 ) {
-      ComID = 17;
-    }
-    if (memcmp(MMIbyte, TEL_1_DOWN, 8) == 0 ) {
-      ComID = 18;
-    }
-    if (memcmp(MMIbyte, LeftReturn_DOWN, 8) == 0 ) {
-      ComID = 19;
-    }
-    if (memcmp(MMIbyte, LeftReturn_1_DOWN, 8) == 0 ) {
-      ComID = 20;
-    }
-    if (memcmp(MMIbyte, Return_DOWN, 8) == 0 ) {
-      ComID = 21;
-    }
-    if (memcmp(MMIbyte, Return_1_DOWN, 8) == 0 ) {
-      ComID = 22;
-    }
-    if (memcmp(MMIbyte, RightReturn_DOWN, 8) == 0 ) {
-      ComID = 23;
-    }
-    if (memcmp(MMIbyte, RightReturn_1_DOWN, 8) == 0 ) {
-      ComID = 24;
-    }
-    if (memcmp(MMIbyte, Big_Left, 8) == 0 ) {
-      ComID = 25;
-      }
-    if (memcmp(MMIbyte, Big_DOWN, 8) == 0 ) {
-      ComID = 26;
-    }
-    if (memcmp(MMIbyte, Big_1_DOWN, 8) == 0 ) {
-      ComID = 27;
-    }
-    if (memcmp(MMIbyte, Big_Right, 8) == 0 ) {
-      ComID = 28;
-    }
-    if (memcmp(MMIbyte, Small_Left, 8) == 0 ) {
-      ComID = 29;
-      }
-    if (memcmp(MMIbyte, Small_Right, 8) == 0 ) {
-      ComID = 30;
-      }
-    if (memcmp(MMIbyte, Small_DOWN, 8) == 0 ) {
-      ComID = 31;
-    }
-    if(memcmp(MMIbyte, Small_1_DOWN, 8) == 0 ){
-      ComID=32;
-    }
-  current2 = (memcmp(MMIbyte, Small_DOWN, 8));
-
-  // if the button state changes to pressed, remember the start time 
-  if (memcmp(MMIbyte, Small_DOWN, 8) == LOW  && previous2 == HIGH && (millis() - firstTime2) > 200) {
-    firstTime2 = millis();
+void mmiEvent(uint8_t code) {
+  if (code == 0xff || code == 0x38) {
+    mmi.enableKeys();
   }
-
-  millis_held2 = (millis() - firstTime2);
-  secs_held2 = millis_held2 / 1000;
-
-  // This if statement is a basic debouncing tool, the button must be pushed for at least
-  // 100 milliseconds in a row for it to be considered as a push.
-  if (millis_held2 > 50) {
-
-    if (memcmp(MMIbyte, Small_DOWN, 8) == LOW  && secs_held2 > prev_secs_held2) {
-      
-    }
-
-    // check if the button was released since we last checked
-    if (memcmp(MMIbyte, Small_DOWN, 8) == HIGH && previous2 == LOW) {
-      // HERE YOU WOULD ADD VARIOUS ACTIONS AND TIMES FOR YOUR OWN CODE
-      // ===============================================================================
-
-      // Button pressed for less than 1 second, one long LED blink
-      if (secs_held2 <= 0) {
-        
-      }
-
-      // If the button was held for 3-6 seconds blink LED 10 times
-      if (secs_held2 >= 1 && secs_held < 3) {
-        
-      }
-
-      // Button held for 1-3 seconds, print out some info
-      if (secs_held2 >= 3) {
-        Serial.print("It Works!!! Seconds held: ");
-        Serial.print(secs_held2);
-        Serial.print("   Milliseconds held: ");
-        Serial.println(millis_held2);
-        
-      }
-      // ===============================================================================
-    }
-  }
-
-  previous2 = (memcmp(MMIbyte, Small_DOWN, 8) == 0 );
-  prev_secs_held2 = secs_held2;
-
-
-      
-      
-    if (memcmp(MMIbyte, LeftUP_DOWN, 8) == 0 ) {
-      ComID = 33;
-    }
-    if (memcmp(MMIbyte, LeftUP_1_DOWN, 8) == 0 ) {
-      ComID = 34;
-    }
-    if (memcmp(MMIbyte, LeftDown_DOWN, 8) == 0 ) {
-      ComID = 35;
-    }
-    if (memcmp(MMIbyte, LeftDown_1_DOWN, 8) == 0 ) {
-      ComID = 36;
-    }
-    if (memcmp(MMIbyte, RightUP_DOWN, 8) == 0 ) {
-      ComID = 37;
-    }
-    if (memcmp(MMIbyte, RightUP_1_DOWN, 8) == 0 ) {
-      ComID = 38;
-    }
-    if (memcmp(MMIbyte, RightDown_DOWN, 8) == 0 ) {
-      ComID = 39;
-    }
-    if (memcmp(MMIbyte, RightDown_1_DOWN, 8) == 0 ) {
-      ComID = 40;
-    }
-
-    MMIcom = 1;
-  }
-  else
-  {
-    MMIcom = 0;
-  }
-  Serial5.flush();
-
-
-}
-
-void SerialPrintKey()  //Ð’Ñ‹Ð²Ð¾Ð´ ÐºÐ¾Ð¼Ð°Ð½Ð´Ñ‹ Ð² Ñ�ÐµÑ€Ð¸Ð°Ð» Ð¿Ð¾Ñ€Ñ‚ , Ñ‚ÑƒÑ‚ Ð¼Ð¾Ð¶Ð½Ð¾ Ð¿Ñ€Ð¸Ð²ÐµÑ�Ñ‚Ð¸ ÐµÐµ Ðº Ð¿Ñ€Ð¸Ð²Ñ‹Ñ‡Ð½Ð¾Ð¼Ñƒ Ð´Ð»Ñ� iCar Ð²Ð¸Ð´Ñƒ
-{
-  for (int x = 1; x <= 7; x++) { 
-    Serial.print(MMIbyte[x], HEX);
-    Serial.print(" ");
-   
-  }
-  Serial.println();
-  
-}
-
-void WriteMMI(byte Mas[], int Byte)   //  ÐŸÑ€Ð¾Ñ†ÐµÐ´ÑƒÑ€Ñ‹ Ð¾Ñ‚Ð¿Ñ€Ð°Ð²ÐºÐ¸ ÐºÐ¾Ð¼Ð°Ð½Ð´ Ð½Ð° Ð¿ÑƒÐ»ÑŒÑ‚
-{
-  for (int i = 0; i < Byte; i++) {
-    Serial5.write(Mas[i]);
-    delay(2);
-    
+  else if (code == 0x35) {
+    mmi.setHighlightLevel(0x99);
   }
 }
 
-void ILL_Beleuchtung ()
-{
+void ILL_Beleuchtung() {
   static bool old_state = false;        // letzten Tasterzustand merken
 
   bool new_state = digitalRead(ILL_Pin); // Tasterzustand einlesen
 
   if (new_state != old_state) {       // hat sich Taster/Schalter-Stellung geÃ¤ndert?
     if ( new_state == true ) {        // Licht ein- oder ausschalten ...
-      WriteMMI(ILL_ON, 8); Serial.print('\t'); Serial5.println(F("ON"));
+      mmi.setIllumination(0xFF); Serial.print('\t'); Serial5.println(F("ON"));
       digitalWrite(bel_Pin, LOW);
       Serial.println("BELEUCHTUNG_AN") ;
     }
     else {
-      WriteMMI(ILL_OFF, 8); Serial.print('\t'); Serial.println(F("OFF"));
+      mmi.setIllumination(0x00); Serial.print('\t'); Serial.println(F("OFF"));
       //digitalWrite(ILL_Ausgang, HIGH);
       digitalWrite(bel_Pin, HIGH);
       Serial.println("BELEUCHTUNG_AUS") ;
@@ -1224,37 +444,6 @@ byte Taster_Dimming ()
   }
   
   return (byte)DimValue;
-}
-
-
-void aendere_Helligkeit (byte feld[], byte value, byte index) // Ã¤ndert direkt im Array
-{
-  byte Checksumme = 0;
-  static byte old_value = 0;
-  
-  if (value == 0x10) {                            // 0x10 Problem umgehen
-    value = 0x11;                                 // nur minimal heller
-  }
-
-  feld[index]= value;                             // neuen Wert an Indexpos. schreiben
-  
-  for (byte i=0; i<6; i++) {                      // die Index 0...5 summieren
-    Checksumme = Checksumme + feld[i];            // ohne RÃ¼cksicht auf Ãœberlauf
-  }
-   
-  feld[6]= Checksumme;                            // korrigierte PrÃ¼fsumme an letzte Stelle schreiben  
-
-  if (value != old_value) {                       // wenn neuer Wert verschieden, dann ausgeben
-    old_value = value;                            // aktuellen Wert merken
-    //WriteMMI(Beleuchtung_enable, 7);      delay(5);
-    WriteMMI(Beleuchtungshelligkeit, 7);  delay(5);
-    //WriteMMI(Beleuchtung_disable, 7); 
-    Serial5.write(06);
-
-    // *** Debugausgabe, kann weg wenn nicht benÃ¶tigt
-    Ausgabe_HEX (Beleuchtungshelligkeit, sizeof(Beleuchtungshelligkeit));  // Ausgabe/Anzeige
-    Serial.println(dimValue);  
-  }
 }
 
 
