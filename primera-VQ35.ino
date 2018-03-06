@@ -154,7 +154,7 @@ int RR_DEF_LED = 32;                    // kontroll LED Heckscheibenheizung (HVA
 int UMLUFT_SW = 26;                     // Taster für Umluftklappe  (HVAC 16)
 int UMLUFT_FRE_LED = 31;                // kontroll LED Umluft (HVAC 5)
 int UMLUFT_REC_LED = 29;                // kontroll LED Umluft (HVAC 6)
-//int KLIMA_SW = 33;                      // Taster für A/C  (HVAC 15)
+int KLIMA_SW = 48;                      // Taster für A/C  (HVAC 15)
 int KLIMA_LED = 47;                     // kontroll LED für Klima "AN" (HVAC 3)
 
 
@@ -168,7 +168,7 @@ int KLIMA_LED = 47;                     // kontroll LED für Klima "AN" (HVAC 3)
 void setup() {
   Serial.begin(9600);                       // Serial Monitor
   Serial.println("Goodnight moon!");
-  //Serial2.begin(9600);                      // verbindung zum Teensy 3.5          
+          
     
 //***************************** beleuchtung **************************************
   pinMode(Pin_DimUp, INPUT);         // mit INPUT_PULLUP invertierte Logik
@@ -266,31 +266,123 @@ void loop() {
 void updateMmi() {
   mmi.update(mmiEvent);
   
-  if (mmiNavButton->wasPressedTimes(1)) {
+  if (mmiNavButton->isPressed()) {
+    Serial.println("Nav down!");
+  }
+  else if (mmiNavButton->wasPressedFor(1000)) {
+    Serial.println("Nav 1 sec gehalten!");
+  }
+  else if (mmiNavButton->wasPressedTimes(1)) {
+    Serial.println("Nav 1x gedrueckt!");
+  }
+  else if (mmiNavButton->wasPressedTimes(2)) {
+    Serial.println("Nav 2x gedrueckt!");
     mmiNavLight.toggle();
   }
-  if (mmiInfoButton->wasPressedTimes(1)) {
+
+  if (mmiInfoButton->isPressed()) {
+    Serial.println("Info down!");
+  }
+  else if (mmiInfoButton->wasPressedFor(1000)) {
+    Serial.println("Info 1 sec gehalten!");
+  }
+  else if (mmiInfoButton->wasPressedTimes(1)) {
+    Serial.println("Info 1x gedrueckt!");
+  }
+  else if (mmiInfoButton->wasPressedTimes(2)) {
+    Serial.println("Info 2x gedrueckt!");
     mmiInfoLight.toggle();
   }
-  if (mmiCarButton->wasPressedTimes(1)) {
+
+
+  if (mmiCarButton->isPressed()) {
+    Serial.println("Car down!");
+  }
+  else if (mmiCarButton->wasPressedFor(1000)) {
+    Serial.println("Car 1 sec gehalten!");
+  }
+  else if (mmiCarButton->wasPressedTimes(1)) {
+    Serial.println("Car 1x gedrueckt!");
+  }
+  else if (mmiCarButton->wasPressedTimes(2)) {
+    Serial.println("Car 2x gedrueckt!");
     mmiCarLight.toggle();
   }
-  if (mmiSetupButton->wasPressedTimes(1)) {
+
+
+  if (mmiSetupButton->isPressed()) {
+    Serial.println("Setup down!");
+  }
+  else if (mmiSetupButton->wasPressedFor(1000)) {
+    Serial.println("Setup 1 sec gehalten!");
+  }
+  else if (mmiSetupButton->wasPressedTimes(1)) {
+    Serial.println("Setup 1x gedrueckt!");
+  }
+  else if (mmiSetupButton->wasPressedTimes(2)) {
+    Serial.println("Setup 2x gedrueckt!");
     mmiSetupLight.toggle();
   }
-  if (mmiRadioButton->wasPressedTimes(1)) {
-    mmiRadioLight.toggle();
-    mmi.setIllumination(mmiRadioLight.isOn() ? 0xFF : 0x00);
+
+
+  if (mmiRadioButton->isPressed()) {
+    Serial.println("Radio down!");
   }
-  if (mmiMediaButton->wasPressedTimes(1)) {
+  else if (mmiRadioButton->wasPressedFor(1000)) {
+    Serial.println("Radio 1 sec gehalten!");
+  }
+  else if (mmiRadioButton->wasPressedTimes(1)) {
+    Serial.println("Radio 1x gedrueckt!");
+  }
+  else if (mmiRadioButton->wasPressedTimes(2)) {
+    Serial.println("Radio 2x gedrueckt!");
+    mmiRadioLight.toggle();
+  }
+
+if (mmiMediaButton->isPressed()) {
+    Serial.println("Media down!");
+  }
+  else if (mmiMediaButton->wasPressedFor(1000)) {
+    Serial.println("Media 1 sec gehalten!");
+  }
+  else if (mmiMediaButton->wasPressedTimes(1)) {
+    Serial.println("Media 1x gedrueckt!");
+  }
+  else if (mmiMediaButton->wasPressedTimes(2)) {
+    Serial.println("Media 2x gedrueckt!");
     mmiMediaLight.toggle();
   }
-  if (mmiNameButton->wasPressedTimes(1)) {
+
+
+if (mmiNameButton->isPressed()) {
+    Serial.println("Name down!");
+  }
+  else if (mmiNameButton->wasPressedFor(1000)) {
+    Serial.println("Name 1 sec gehalten!");
+  }
+  else if (mmiNameButton->wasPressedTimes(1)) {
+    Serial.println("Name 1x gedrueckt!");
+  }
+  else if (mmiNameButton->wasPressedTimes(2)) {
+    Serial.println("Name 2x gedrueckt!");
     mmiNameLight.toggle();
   }
-  if (mmiTelButton->wasPressedTimes(1)) {
+
+
+  if (mmiTelButton->isPressed()) {
+    Serial.println("Tel down!");
+  }
+  else if (mmiTelButton->wasPressedFor(1000)) {
+    Serial.println("Tel 1 sec gehalten!");
+  }
+  else if (mmiTelButton->wasPressedTimes(1)) {
+    Serial.println("Tel 1x gedrueckt!");
+  }
+  else if (mmiTelButton->wasPressedTimes(2)) {
+    Serial.println("Tel 2x gedrueckt!");
     mmiTelLight.toggle();
   }
+  
   if (mmiTopLeftButton->wasPressedTimes(1)) {
     mmiTopLeftLight.toggle();
   }
