@@ -44,18 +44,6 @@ MmiLight mmiTopRightLight(0x0D, &mmi);
 MmiLight mmiBottomRightLight(0x0E, &mmi);
 MmiLight mmiRadioLight(0x18, &mmi);
 
-// ******************************************************* Audi MMI 3G ********************************************* 
-
-int Delay = 10; // delay in millisec
-int current2;
-byte previous2 = HIGH;
-unsigned long firstTime2; // how long since the button was first pressed
-
-//**************************************** USB MMI ******************************************************************
-
-int MMI = 0;
-int MediaPlayPause = 0;
-
 //*************************************************  beleuchtung   ******************************************
 const byte ILL_Pin = 37;                      // eingang beleuchtungsschalter 12V  OK
 
@@ -425,18 +413,8 @@ if (mmiNameButton->isPressed()) {
     }
   }
   if (mmiBigWheelButton->wasPressedTimes(1)) {
-    if(MediaPlayPause == 0 && (MMI == 0x36)) { 
-      Keyboard.press(KEY_MEDIA_PLAY);
-      Keyboard.release(KEY_MEDIA_PLAY);      
-      Serial.println("MEDIA_PLAY") ;
-      MediaPlayPause ++;
-    }
-    else if(MediaPlayPause == 1 && (MMI == 0x36)) {
-      Keyboard.press(KEY_MEDIA_PLAY_PAUSE);
-      Keyboard.release(KEY_MEDIA_PLAY_PAUSE);     
-      Serial.println("MEDIA_PAUSE") ;
-      MediaPlayPause --;
-    }
+    Keyboard.press(KEY_MEDIA_PLAY_PAUSE);
+    Keyboard.release(KEY_MEDIA_PLAY_PAUSE);     
   }
   
   if (mmiSmallWheel->wasTurned()) {
