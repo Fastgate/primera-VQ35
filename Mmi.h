@@ -85,6 +85,11 @@ public:
       delete _buttons[i];
     }
     delete[] _buttons;
+
+    for (int i = 0; i < _assignedWheelCount; i++) {
+      delete _wheels[i];
+    }
+    delete[] _wheels;
   }
   MmiButton *createButton(uint8_t buttonId) {
     if (_assignedButtonCount >= _buttonCount) {
@@ -274,6 +279,7 @@ private:
     Serial.println();
     Serial.flush();
 */
+    free(message);
   }
   void ack() {
 /*    
