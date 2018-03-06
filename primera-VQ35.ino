@@ -1,6 +1,13 @@
 #include "Button.h"
-#include "TimedOutput.h"
+#include "Output.h"
 #include "Mmi.h"
+
+  /////////////
+ // HELPERS // 
+/////////////
+
+#define min(X, Y)  ((X) < (Y) ? (X) : (Y))
+#define max(X, Y)  ((X) > (Y) ? (X) : (Y))
 
   /////////////////////
  // MMI DEFINITIONS // 
@@ -44,13 +51,18 @@ MmiLight mmiTopRightLight(0x0D, &mmi);
 MmiLight mmiBottomRightLight(0x0E, &mmi);
 MmiLight mmiRadioLight(0x18, &mmi);
 
-//*************************************************  beleuchtung   ******************************************
-const byte ILL_Pin = 37;                      // eingang beleuchtungsschalter 12V  OK
+  //////////////////////////////
+ // ILLUMINATION DEFINITIONS // 
+//////////////////////////////
 
-byte dimValue;
-const byte Pin_DimUp = 45;                   // Taster Dim Heller  OK
-const byte Pin_DimDown = 46;                 // Taster Dim Dunkler  OK
-int bel_Pin = 21; // 12V Dim Analog
+Button illuminationToggleButton(new InputTrigger(37, 20, LOW, INPUT_PULLUP), 0);
+Button illuminationDimUpButton(new InputTrigger(45, 20, LOW, INPUT_PULLUP), 0);
+Button illuminationDimDownButton(new InputTrigger(46, 20, LOW, INPUT_PULLUP), 0);
+Output illuminationOutput(21, HIGH);
+
+uint8_t desiredIlluminationLevel = 0xFF / 2;
+uint8_t illuminationLevel = 0x00;
+bool illuminationState = false;
 
 // ************************ ENGINE START BUTTON ********************************
 
@@ -118,8 +130,8 @@ int UNLOCK_RLY = 28;                        // OK
 int ZvUnlock = 23;                          // Entriegeln // gedrÃ¼ckt 5V // losgelassen 0V  OK
 Button zvLockButton(new InputTrigger(ZvLock));
 Button zvUnlockButton(new InputTrigger(ZvUnlock));
-TimedOutput lockRelay(LOCK_RLY, HIGH);
-TimedOutput unlockRelay(UNLOCK_RLY, HIGH);
+TimedOutput lockRelay(new Output(LOCK_RLY, HIGH));
+TimedOutput unlockRelay(new Output(UNLOCK_RLY, HIGH));
 int fob_did = 0;
 
 
@@ -158,13 +170,6 @@ void setup() {
   Serial.println("Goodnight moon!");
           
     
-//***************************** beleuchtung **************************************
-  pinMode(Pin_DimUp, INPUT);         // mit INPUT_PULLUP invertierte Logik
-  pinMode(Pin_DimDown, INPUT);       // mit INPUT_PULLUP invertierte Logik
-  pinMode(ILL_Pin, INPUT_PULLUP);           // eingang beleuchtungsschalter
-
-  digitalWrite(bel_Pin, HIGH);
-  digitalWrite(ILL_Pin, HIGH);
 //***************************** Engine Start Button ******************************
 
   
@@ -179,7 +184,6 @@ void setup() {
   pinMode(accLed, OUTPUT);
   pinMode(onLed, OUTPUT);
   pinMode(brk, INPUT);
-  pinMode(bel_Pin, OUTPUT);
   pinMode(NATS, OUTPUT);
   pinMode(NATS_LED, OUTPUT);
   time3 = millis();
@@ -234,16 +238,13 @@ pinMode(KLIMA_LED, OUTPUT);
 
 void loop() {  
   updateMmi();
+  updateIllumination();
   
-  ILL_Beleuchtung();
-  dimValue = Taster_Dimming();          
-  mmi.setIllumination(dimValue);
-
   Engine_Start_Button();
 
   SWC();                           // Steering Wheel Control
 
-  FOB();                           // Funkfernbedienung
+  //FOB();                           // Funkfernbedienung
 }
 
 
@@ -442,90 +443,41 @@ void mmiEvent(uint8_t code) {
   }
 }
 
-void ILL_Beleuchtung() {
-  static bool old_state = false;        // letzten Tasterzustand merken
+  ////////////////////////////
+ // ILLUMINATION FUNCTIONS // 
+////////////////////////////
 
-  bool new_state = digitalRead(ILL_Pin); // Tasterzustand einlesen
-
-  if (new_state != old_state) {       // hat sich Taster/Schalter-Stellung geÃ¤ndert?
-    if ( new_state == true ) {        // Licht ein- oder ausschalten ...
-      mmi.setIllumination(0xFF); Serial.print('\t'); Serial5.println(F("ON"));
-      digitalWrite(bel_Pin, LOW);
-      Serial.println("BELEUCHTUNG_AN") ;
-    }
-    else {
-      mmi.setIllumination(0x00); Serial.print('\t'); Serial.println(F("OFF"));
-      //digitalWrite(ILL_Ausgang, HIGH);
-      digitalWrite(bel_Pin, HIGH);
-      Serial.println("BELEUCHTUNG_AUS") ;
-    }
-    old_state = new_state;  // aktuellen Zustand merken
-    delay(20);              // Totzeit Tasterentprellung
+void updateIllumination() {
+  illuminationDimUpButton.update();
+  illuminationDimDownButton.update();
+  illuminationToggleButton.update();
+  
+  if (illuminationDimUpButton.wasPressedTimes(1)) {
+    desiredIlluminationLevel = min(255, (desiredIlluminationLevel + 0xFF / 16));
+    changeIllumination(illuminationState, desiredIlluminationLevel);
+  }
+  if (illuminationDimDownButton.wasPressedTimes(1)) {
+    desiredIlluminationLevel = max(46, (desiredIlluminationLevel - 0xFF / 16));
+    changeIllumination(illuminationState, desiredIlluminationLevel);
+  }
+  
+  if (illuminationToggleButton.wasPressedTimes(1)) {
+    changeIllumination(!illuminationState, desiredIlluminationLevel);
   }
 }
 
-
-byte Taster_Dimming ()
-{
-  static unsigned long last_Time_DimUp = 0;
-  static unsigned long last_Time_DimDown = 0;
-  const unsigned int Entprellzeit = 30;           // Taster Entprellzeit [ms]
-  static bool last_state_DimUp = true;           // INPUT_PULLUP invertierte Logik
-  static bool last_state_DimDown = true;         // INPUT_PULLUP invertierte Logik
-  static int DimValue = 0x80;                     // Helligkeitswert, 50% Startwert
-  
-  bool read_DimUp = digitalRead(Pin_DimUp);       // UP Tasterstatus einlesen
-  bool read_DimDown = digitalRead(Pin_DimDown);   // DOWN Tasterstatus einlesen
-
-  if (read_DimUp != last_state_DimUp) {           // wenn UP Tasterstatus verschieden zu vorher
-    last_Time_DimUp = millis();                   // Zeit vom letzten Tastendruck merken
+void changeIllumination(bool newState, uint8_t newLevel) {
+  illuminationState = newState;
+  if (illuminationState == false) {
+    illuminationLevel = 0x00;
   }
+  else {
+    illuminationLevel = newLevel;
+  }  
 
-  if (read_DimDown != last_state_DimDown) {       // wenn DOWN Tasterstatus verschieden zu vorher
-    last_Time_DimDown = millis();                 // Zeit vom letzten Tastendruck merken
-  }
-
-  if ((millis() - last_Time_DimUp) > Entprellzeit) {
-    if (read_DimUp == HIGH) {                      // wurde UP Taster wirklich gedrÃ¼ckt?
-      DimValue = DimValue + 15;                   // Dimming Variable erhÃ¶hen
-      last_state_DimUp = !last_state_DimUp;       // Status umschalten, ZÃ¤hlsperre
-    }
-    else {
-      last_state_DimUp = !last_state_DimUp;       // Status umschalten, ZÃ¤hlsperre
-    }
-  }
-
-  if ((millis() - last_Time_DimDown) > Entprellzeit) {
-    if (read_DimDown == HIGH  ) {                    // wurde DOWN Taster wirklich gedrÃ¼ckt?
-      DimValue = DimValue - 15;                   // Dimming Variable erniedrigen
-      last_state_DimDown = !last_state_DimDown;   // Status umschalten, ZÃ¤hlsperre
-    }
-    else {
-      last_state_DimDown = !last_state_DimDown;   // Status umschalten, ZÃ¤hlsperre
-    }
-  }
-
-  if (DimValue < 45) {                             // ZÃ¤hlumfang/Wert nach unten auf 0 begrenzen
-    DimValue = 45;
-  }
-
-  if (DimValue > 255) {                           // ZÃ¤hlumfang/Wert nach oben auf 255 begrenzen
-    DimValue = 255;
-  }
-  
-  return (byte)DimValue;
-}
-
-
-// *** fÃ¼r Debugausgabe, kann weg wenn nicht benÃ¶tigt
-void Ausgabe_HEX (byte feld[], byte laenge)       // Debugausgabe
-{   
-    for (byte i=0; i<laenge; i++) { 
-      Serial.print(feld[i],HEX);
-      Serial.print("."); 
-    }
-    Serial.print('\t');
-   
+  Serial.printf("Illumination %d.\r\n", illuminationLevel);
+  illuminationOutput.set(!illuminationState);
+  mmi.setIllumination(illuminationLevel);
 }
 
 
@@ -973,13 +925,13 @@ void FOB(){
 
   if (zvUnlockButton.wasPressedTimes(1)) {
     Serial.println("AufschlieÃŸen.");
-    unlockRelay.write(LOW, 100);
+    unlockRelay.set(LOW, 100);
     digitalWrite(Android_OTG, HIGH);
     OTG_status = 1;
   }
   if (zvUnlockButton.wasPressedTimes(3)) {
     Serial.println("AufschlieÃŸen und Fenster auf.");
-    unlockRelay.write(LOW, 4000);
+    unlockRelay.set(LOW, 4000);
   }
   if (zvLockButton.wasPressedTimesOrMore(4)) {
     // TODO: CODE FUER 15 MINUTEN MOTORSTART
@@ -1047,7 +999,7 @@ void FOB(){
   }
   if (zvLockButton.wasPressedTimes(3)) {
     Serial.println("AbschlieÃŸen und Fenster zu.");
-    lockRelay.write(LOW, 6000);
+    lockRelay.set(LOW, 6000);
   }
 
   if (zvLockButton.wasPressedTimesOrMore(4)) {
