@@ -244,7 +244,7 @@ void loop() {
 
   SWC();                           // Steering Wheel Control
 
-  //FOB();                           // Funkfernbedienung
+  FOB();                           // Funkfernbedienung
 }
 
 
