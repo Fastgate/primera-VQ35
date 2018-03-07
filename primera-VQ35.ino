@@ -475,6 +475,7 @@ void setIgnition(uint8_t newState) {
 
     ignitionOutputs.acc->set(!(ignition.state >= IGNITION_ACC && !ignitionOutputs.crank->getState()));
     ignitionLights.acc->set(!(ignition.state == IGNITION_ACC));
+    ignitionLights.nats->set(!(ignition.state >= IGNITION_ACC));
 
     ignitionOutputs.nats->set(!(ignition.state >= IGNITION_ON));
     ignitionOutputs.key->set(!(ignition.state >= IGNITION_ON));
