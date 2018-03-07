@@ -64,44 +64,43 @@ uint8_t desiredIlluminationLevel = 0xFF / 2;
 uint8_t illuminationLevel = 0x00;
 bool illuminationState = false;
 
-// ************************ ENGINE START BUTTON ********************************
+  //////////////////////////
+ // IGNITION DEFINITIONS // 
+//////////////////////////
 
-int unlock_led = 20; // ready to start  GREEN LED  OK
-int b1 = 39; //Start button.  OK
-int b2 = 16; //Clutch interlock switch.  OK
-int acc = 42; //Accessory output.  OK
-int ign = 44; //Ignition output.  OK
-int st = 41; //Starter output.  OK
-int ledPin = 24; //LED for button illumination RED LED  OK
-int accLed = 5; //ACC indicator. OK
-int onLed = 2; //ON indicator.  OK
-int brk = 17; // Brake Switch  OK
-int NATS =53;
-int NATS_LED = 57;
+#define IGNITION_OFF  0
+#define IGNITION_ACC  1
+#define IGNITION_ON   2
 
-long unsigned time3 = 0; // Timer.
-long unsigned time4 = 0; //2nd timer.
-int ledFlash = 0;
-int ledFlash2 = 0;
-int unlock_ledOn = 0;
-int ledOn = 0;
-int b1Stat = 0; //Was the primary switch pressed?
-int b2Stat = 0; // Secondary switch pressed?
-int did = 0;
-int did2 = 0;
-int did3 = 0;
-int on = 0;
-int on2 = 0;
-int brkStat =0;
+Button ignitionButton(new InputTrigger(39, 20, LOW, INPUT_PULLUP), 0);
+Button crankSensor(new InputTrigger(41, 20, LOW));
+InputTrigger clutchSensor(16, 20, LOW, INPUT_PULLUP);
+InputTrigger breakSensor(17, 20, LOW, INPUT_PULLUP);
+InputTrigger neutralSensor(36, 20, LOW, INPUT_PULLUP);
+InputTrigger clutch(16, 20, LOW, INPUT_PULLUP);
+InputTrigger keySensor(6, 20, LOW, INPUT_PULLUP);
 
+struct {
+  uint8_t state = IGNITION_OFF;
+  bool engine   = false;
+} ignition;
 
-int current;         // Current state of the button
-                     // (LOW is pressed b/c i'm using the pullup resistors)
-long millis_held;    // How long the button was held (milliseconds)
-long secs_held;      // How long the button was held (seconds)
-long prev_secs_held; // How long the button was held in the previous check
-byte previous = HIGH;
-unsigned long firstTime; // how long since the button was first pressed
+struct {
+  Output *ready   = new Output(20, HIGH);
+  Output *button  = new Output(24, HIGH);
+  Output *acc     = new Output(5, HIGH);
+  Output *on      = new Output(2, HIGH);
+  Output *nats    = new Output(57, HIGH);
+} ignitionLights;
+
+struct {
+  Output *acc         = new Output(42, HIGH);
+  Output *on          = new Output(44, HIGH);
+  Output *key         = new Output(43, HIGH);
+  Output *nats        = new Output(53, HIGH);
+  TimedOutput *crank  = new TimedOutput(new Output(41, HIGH));
+} ignitionOutputs;
+
 
 // ************************** Steering Wheel Control *****************************
 
@@ -168,40 +167,7 @@ int KLIMA_LED = 47;                     // kontroll LED für Klima "AN" (HVAC 3)
 void setup() {
   Serial.begin(9600);                       // Serial Monitor
   Serial.println("Goodnight moon!");
-          
     
-//***************************** Engine Start Button ******************************
-
-  
-  pinMode(b1, INPUT);                // Engine Start Button
-  pinMode(b2, INPUT);                // Kupplungsschalter 12V
-  pinMode(acc, OUTPUT);
-  pinMode(IGN_KEY_RLY, OUTPUT);
-  pinMode(ign, OUTPUT);
-  pinMode(st, OUTPUT);
-  pinMode(ledPin, OUTPUT);
-  pinMode(unlock_led, OUTPUT);
-  pinMode(accLed, OUTPUT);
-  pinMode(onLed, OUTPUT);
-  pinMode(brk, INPUT);
-  pinMode(NATS, OUTPUT);
-  pinMode(NATS_LED, OUTPUT);
-  time3 = millis();
-  time4 = millis();
-  
-  digitalWrite(acc, HIGH);
-  digitalWrite(IGN_KEY_RLY, HIGH);
-  digitalWrite(ign, HIGH);
-  digitalWrite(st, HIGH);
-  digitalWrite(accLed, HIGH);
-  digitalWrite(onLed, HIGH);
-  digitalWrite(ledPin, HIGH);
-  digitalWrite(brk, HIGH);
-  digitalWrite(unlock_led, HIGH);
-  digitalWrite(b2, LOW);
-  digitalWrite(NATS, HIGH);
-  digitalWrite(NATS_LED,HIGH);
-
 // **************************** Steering Wheel Control ***********
 
    pinMode(wheelPin, INPUT);
@@ -209,14 +175,10 @@ void setup() {
 
 
 // *********************** Primera STW Inputs ************************
-
-  pinMode(IGN_KEY, INPUT);
-  digitalWrite(IGN_KEY, HIGH);
+  
   pinMode(RevGear, INPUT_PULLUP);
   digitalWrite(RevGear, HIGH); 
-  pinMode(Handbrake_SW,INPUT); 
-  digitalWrite(Handbrake_SW, HIGH);
-   
+     
 // *********************** Android OTG *******************************
 
 pinMode(Android_OTG, OUTPUT);
@@ -239,8 +201,8 @@ pinMode(KLIMA_LED, OUTPUT);
 void loop() {  
   updateMmi();
   updateIllumination();
-  
-  Engine_Start_Button();
+
+  updateIgnition();
 
   SWC();                           // Steering Wheel Control
 
@@ -443,6 +405,7 @@ void mmiEvent(uint8_t code) {
   }
 }
 
+
   ////////////////////////////
  // ILLUMINATION FUNCTIONS // 
 ////////////////////////////
@@ -479,315 +442,62 @@ void changeIllumination(bool newState, uint8_t newLevel) {
 }
 
 
-void Engine_Start_Button()
+  ////////////////////////
+ // IGNITION FUNCTIONS // 
+////////////////////////
 
-{
-  current = digitalRead(b1);
+void updateIgnition() {
+  ignitionButton.update();
+  ignitionOutputs.crank->update();
 
-  if( digitalRead(IGN_KEY) ==1){
-    digitalWrite(IGN_KEY_RLY, LOW);
-    IGN_KEY_status = 1;
-    
-  // -------------------------Read the bottons:-----------
-  if(digitalRead(b1) == LOW && b1Stat == 0){
-    b1Stat++;
-    on++;
-    Serial.println("Startknopf betÃ¤tigt");
-    delay(90);
-  }
-  if(digitalRead(b1) == HIGH && b1Stat == 1){
-    b1Stat--;
-    on--;
-    delay(90);
-  }
-  
-  
-  if(digitalRead(b2) == HIGH && b2Stat == 0){
-    b2Stat++;
-    on2++;
-    Serial.println("Kupplung_betÃ¤tigt") ;
-    delay(90);
-  }
- 
-  if(digitalRead(b2) == LOW && b2Stat == 1){
-    b2Stat--;
-    on2--;
-    delay(90);
-  }
-
-  if(digitalRead(brk) == HIGH && brkStat == 0){
-    brkStat++;
-    Serial.println("BREMSE_BETAETIGT") ;
-    delay(90);
-  }
-
-   if(digitalRead(brk) == LOW && brkStat == 1){
-    brkStat--;
-    delay(90);
-  }
-
-  if(digitalRead(Handbrake_SW) == LOW && Handbrake_SW_Stat == 0){
-    Handbrake_SW_Stat++;
-    Serial.println("Handbremse_ON");
-    delay(90);
-  }
-  if(digitalRead(Handbrake_SW) == HIGH && Handbrake_SW_Stat == 1){
-    Handbrake_SW_Stat--;
-    Serial.println("Handbremse_OFF");
-    delay(90);
-  }
-
-  if(digitalRead(RevGear) == HIGH && RevGear_Stat == 0){
-    RevGear_Stat ++;
-    Serial.println("Rückwärtsgang_ON");
-    delay(90);
-  }
-  if(digitalRead(RevGear) == LOW && RevGear_Stat == 1){
-    RevGear_Stat --;
-    Serial.println("Rückwärtsgang_OFF");
-    delay(90);
-  }
-  
-
-    
-  //--------------------Operation:---------------------------
-  if(on == 1 && on2 == 1 && did == 0){ // Start engine, IGN on.
-      digitalWrite(acc, LOW);
-      digitalWrite(accLed, LOW);
-      delay(500);
-      digitalWrite(acc, HIGH);
-      digitalWrite(accLed, HIGH);
-      digitalWrite(NATS,LOW);
-      digitalWrite(ign, LOW); //Write LOW to activate relay.
-      digitalWrite(onLed, LOW);
-      delay(600);
-      digitalWrite(st, LOW);
-      delay(600);
-      //Keyboard.press(KEY_SYSTEM_WAKE_UP);  // ENGINE_BUTTON
-      //Keyboard.release(KEY_SYSTEM_WAKE_UP);
-            
-      did = 1;
-      did2 = 0;
-      did3 = 1;
-      ledOn = 1;
-      unlock_ledOn = 1;
-      Serial.println("KeyStart");
-      IGN_KEY_status = 1;
-    
-  }
-  
-  if(on == 0 && did == 1){ //Starter off.
-    digitalWrite(st, HIGH);
-    //Serial2.print(otvet2 = 1, HEX);       //Wake UP Tablet
-    did = 2;
-  }
-  
-  if(did == 2 && on == 0){ //ACC on after engine start.
-    digitalWrite(acc, LOW);
-    digitalWrite(accLed, HIGH);
-    digitalWrite(unlock_led, HIGH);
-    
-    
-    
-    did = 3;
-  }
-  
-  if(did == 3 && on == 1 && brkStat == 1){  //Turn everything off.
-   
-    digitalWrite(ign, HIGH);
-    digitalWrite(acc, HIGH);
-    digitalWrite(onLed, HIGH);
-    digitalWrite(accLed, HIGH);
-    digitalWrite(NATS,HIGH);
-    //Keyboard.press(KEY_SYSTEM_POWER_DOWN);   // ENGINE_BUTTON
-    //Keyboard.release(KEY_SYSTEM_POWER_DOWN);
-    
-    did = 4;
-    ledOn = 0;
-    time4 = 0;
-    unlock_ledOn = 0;
-    IGN_KEY_status = 0;
-  }else
-
-  if (current == LOW && previous == HIGH && (millis() - firstTime) > 200) {
-    firstTime = millis();
-  }
-
-  millis_held = (millis() - firstTime);
-  secs_held = millis_held / 1000;
-
-  // This if statement is a basic debouncing tool, the button must be pushed for at least
-  // 100 milliseconds in a row for it to be considered as a push.
-  if (millis_held > 50) {
-
-    if (current == LOW && secs_held > prev_secs_held) {
-       // Each second the button is held blink the indicator led
+  if (ignitionButton.isPressed() && keySensor.getState()) {
+    // switch engine on
+    if ((clutch.getState() || neutralSensor.getState()) && ignition.state != IGNITION_ON) {
+      startEngine();
     }
-
-    // check if the button was released since we last checked
-    if (current == HIGH && previous == LOW) {
-      // HERE YOU WOULD ADD VARIOUS ACTIONS AND TIMES FOR YOUR OWN CODE
-      // ===============================================================================
-
-      // Button pressed for less than 1 second, one long LED blink
-      if (secs_held <= 0) {
-        
-      }
-
-      // If the button was held for 3-6 seconds blink LED 10 times
-      if (secs_held >= 1 && secs_held < 3) {
-        
-      }
-
-      // Button held for 1-3 seconds, print out some info
-      if (secs_held >= 2 ) {
-        Serial.print("It Works!!! Seconds held: ");
-        Serial.print(secs_held);
-        Serial.print("   Milliseconds held: ");
-        Serial.println(millis_held);
-
-        digitalWrite(ign, HIGH);
-        digitalWrite(acc, HIGH);
-        digitalWrite(onLed, HIGH);
-        digitalWrite(accLed, HIGH);
-        digitalWrite(NATS,HIGH);
-        //Keyboard.press(KEY_SYSTEM_POWER_DOWN);   // ENGINE_BUTTON
-        //Keyboard.release(KEY_SYSTEM_POWER_DOWN);
-        
-        did = 4;
-        ledOn = 0;
-        time4 = 0;
-        unlock_ledOn = 0;
-        IGN_KEY_status = 0;
-      }
-      // ===============================================================================
+    // toggle through ignition states
+    else {
+      setIgnition(ignition.state >= IGNITION_ON ? IGNITION_OFF : ignition.state+1);
     }
   }
 
-  previous = current;
-  prev_secs_held = secs_held;
+  ignitionLights.ready->set(!(clutch.getState() && ignition.state != IGNITION_ON && keySensor.getState()));
 
-  
-  
-  
-  if(did == 4 && on == 0){
-    did = 0;
-    did2 = 0;
-    did3 = 0;
-    IGN_KEY_status = 0;
-    
+  // reenable ACC after crank has stopped
+  if (crankSensor.wasPressedTimes(1)) {
+    ignitionLights.acc->set(ignition.state >= IGNITION_ACC);
   }
-  //-----------------NON STARTER OPERATION--------------------
-  
-  if(on == 1 && did2 == 0 && did3 == 0){ //Push for ACC
-    digitalWrite(acc, LOW);
-    digitalWrite(accLed, LOW);
-    //Keyboard.press(KEY_SYSTEM_WAKE_UP);  // ENGINE_BUTTON
-    //Keyboard.release(KEY_SYSTEM_WAKE_UP);
-   
-    
-    did2 = 1;
-    ledOn = 1;
-    unlock_ledOn = 1;
-  }
-  
-  if(on == 0 && did2 == 1 && did3 == 0){
-    did2 = 2;
-    
-  }
-  
-  if(did2 == 2 && on == 1 && on2 == 0){ //IGN without start
-    digitalWrite(ign, LOW);
-    digitalWrite(onLed, LOW);
-    digitalWrite(accLed, LOW);
-    digitalWrite(NATS,LOW);
-    //Serial2.print(otvet2 = 1, HEX);       //Wake UP Tablet
-    did2 = 3;
-  }
-  
-  if(on == 0 && did2 == 3 && did3 == 0){
-  did2 = 4;
-  
-  }
-  
-  if(did2 == 4 && on == 1 && on2 == 0){ //ALL SYSTEMS OFF.
-    digitalWrite(ign, HIGH);
-    digitalWrite(acc, HIGH);
-    digitalWrite(accLed, HIGH);
-    digitalWrite(onLed, HIGH); 
-    digitalWrite(NATS,HIGH);
-    //Serial2.print(otvet2 = 2, HEX);       //PowerDown Tablet
-     
-    did2 = 5;
-    ledOn = 0;
-    time4 = 0;
-    unlock_ledOn = 0;
-  }
-  
-  if(did2 == 5 && on == 0){
-    did2 = 0;
-    
-  }
-  //-----------------LED OUTPUT/BUTTON FLASH/illum.-------------------
-  if(ledOn == 1 && time4 == 0){
-  digitalWrite(ledPin, LOW);
-    time4 = 1;
-   }
-   else if(millis() - time3 > 2500 && ledOn == 0 && b2Stat == 0){
-    digitalWrite(ledPin, LOW);
-    time3 = millis();
-    ledFlash = 1;
-    }
-  if(millis() - time3 > 100 && ledFlash == 1 && ledOn == 0 && b2Stat == 0){
-    digitalWrite(ledPin, HIGH);
-    time3 = millis();
-    ledFlash = 0;
-   }
-  if(b2Stat == 1 && b1Stat == 0 && ledOn == 0){
-    digitalWrite(unlock_led, HIGH);
-    delay(90);
-    digitalWrite(unlock_led, LOW);
-    delay(100);
-   
-  }else
-
-  if(b2Stat == 0 && b1Stat == 0 && ledOn == 0){
-  digitalWrite(unlock_led,HIGH);
-  }
- if(b2Stat == 1 && b1Stat == 0 && unlock_ledOn == 1){
-    digitalWrite(unlock_led, LOW);
-    digitalWrite(ledPin, HIGH);
-    
- }else
- if(b2Stat == 0 && b1Stat == 0 && unlock_ledOn == 1 ){
-  digitalWrite(unlock_led,HIGH);
-  digitalWrite(ledPin, LOW);
- }
-
-
- if(did == 3){
-  digitalWrite(unlock_led,HIGH);
-  digitalWrite(ledPin, LOW);
- }
-}else
-{
-
-    digitalWrite(IGN_KEY_RLY, HIGH);
-    digitalWrite(ign, HIGH);
-    digitalWrite(acc, HIGH);
-    digitalWrite(accLed, HIGH);
-    digitalWrite(onLed, HIGH); 
-    digitalWrite(ledPin, HIGH);
-    digitalWrite(NATS,HIGH);
-    //Keyboard.press(KEY_SYSTEM_POWER_DOWN);   // ENGINE_BUTTON
-    //Keyboard.release(KEY_SYSTEM_POWER_DOWN);
-   
-    
-  }
-  
 }
 
-  
+void setIgnition(uint8_t newState) {
+  if (ignition.state != newState) {
+    ignition.state = newState;
+
+    ignitionOutputs.acc->set(!(ignition.state >= IGNITION_ACC && !ignitionOutputs.crank->getState()));
+    ignitionLights.acc->set(!(ignition.state == IGNITION_ACC));
+
+    ignitionOutputs.nats->set(!(ignition.state >= IGNITION_ON));
+    ignitionOutputs.key->set(!(ignition.state >= IGNITION_ON));
+    ignitionOutputs.on->set(!(ignition.state >= IGNITION_ON));
+    ignitionLights.on->set(!(ignition.state >= IGNITION_ON));
+    Serial.printf("Ignition: %d.\r\n", ignition.state);
+  }
+}
+
+void startEngine() {
+  setIgnition(IGNITION_ON);
+  if (clutchSensor.getState() || neutralSensor.getState()) {
+    ignitionOutputs.acc->set(HIGH);
+    ignitionOutputs.crank->set(LOW, 600);
+    Serial.println("Start engine!");    
+  }
+}
+
+
+  //////////////////////////////
+ // STEERING WHEEL FUNCTIONS // 
+//////////////////////////////
+ 
 void SWC() {
 
 static unsigned long last_Time_PHONE = 0;
@@ -915,12 +625,6 @@ void FOB(){
   lockRelay.update();
   unlockRelay.update();
 
-  
-
-   
-  
- 
-
   if (zvUnlockButton.wasPressedTimes(1)) {
     Serial.println("AufschlieÃŸen.");
     unlockRelay.set(LOW, 100);
@@ -932,68 +636,7 @@ void FOB(){
     unlockRelay.set(LOW, 4000);
   }
   if (zvLockButton.wasPressedTimesOrMore(4)) {
-    // TODO: CODE FUER 15 MINUTEN MOTORSTART
-    if(fob_did == 0){ // Start engine, IGN on.
-      digitalWrite(IGN_KEY_RLY, LOW);
-      digitalWrite(acc, LOW);
-      digitalWrite(accLed, LOW);
-      delay(500);
-      digitalWrite(NATS,LOW);
-      digitalWrite(acc, HIGH);
-      digitalWrite(accLed, HIGH);
-      digitalWrite(ign, LOW); //Write LOW to activate relay.
-      digitalWrite(onLed, LOW);
-      delay(600);
-      digitalWrite(st, LOW);
-      delay(600);
-      
-            
-      fob_did = 1;
-      
-      unlock_ledOn = 1;
-      Serial.println("FOB Start");
-      
-      IGN_KEY_status = 1;
-    
-  }
-  
-  if(on == 0 && fob_did == 1){ //Starter off.
-    digitalWrite(st, HIGH);
-    //Serial2.print(otvet2 = 1, HEX);       //Wake UP Tablet
-    fob_did = 2;
-  }
-  
-  if(fob_did == 2 && on == 0){ //ACC on after engine start.
-    digitalWrite(acc, LOW);
-    digitalWrite(accLed, HIGH);
-    //Serial2.print(otvet2 = 1, HEX);       //Wake UP Tablet
-    digitalWrite(unlock_led, HIGH);
-    
-    
-    
-    fob_did = 3;
-  }
-
-  }
-  if(zvUnlockButton.wasPressedTimesOrMore(1)){
-    if(fob_did == 3) {
-  
-       
-   
-    digitalWrite(ign, HIGH);
-    digitalWrite(acc, HIGH);
-    digitalWrite(IGN_KEY_RLY, HIGH);
-    digitalWrite(onLed, HIGH);
-    digitalWrite(accLed, HIGH);
-    digitalWrite(NATS,HIGH);
-    //Serial2.print(otvet2 = 2, HEX);       //PowerDown Tablet
-    
-    fob_did = 0;
-    unlock_ledOn = 0;
-    IGN_KEY_status = 0;
-  
-    }
-  
+    // TODO: CODE FUER 15 MINUTEN MOTORSTART  
   }
   if (zvLockButton.wasPressedTimes(3)) {
     Serial.println("AbschlieÃŸen und Fenster zu.");
