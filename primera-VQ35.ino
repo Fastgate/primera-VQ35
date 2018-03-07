@@ -454,30 +454,28 @@ void updateIllumination() {
   
   if (illuminationDimUpButton.wasPressedTimes(1)) {
     desiredIlluminationLevel = min(255, (desiredIlluminationLevel + 0xFF / 16));
-    changeIllumination(illuminationState, desiredIlluminationLevel);
   }
   if (illuminationDimDownButton.wasPressedTimes(1)) {
     desiredIlluminationLevel = max(46, (desiredIlluminationLevel - 0xFF / 16));
-    changeIllumination(illuminationState, desiredIlluminationLevel);
-  }
-  
+  }  
   if (illuminationToggleButton.wasPressedTimes(1)) {
-    changeIllumination(!illuminationState, desiredIlluminationLevel);
+    illuminationState = !illuminationState;
   }
+
+  changeIllumination(illuminationState, desiredIlluminationLevel);
 }
 
 void changeIllumination(bool newState, uint8_t newLevel) {
-  illuminationState = newState;
-  if (illuminationState == false) {
-    illuminationLevel = 0x00;
-  }
-  else {
+  newLevel = newState ? newLevel : 0x00; 
+  if (illuminationState != newState || illuminationLevel != newLevel) {
+    illuminationState = newState;
     illuminationLevel = newLevel;
-  }  
-
-  Serial.printf("Illumination %d.\r\n", illuminationLevel);
-  illuminationOutput.set(!illuminationState);
-  mmi.setIllumination(illuminationLevel);
+    
+    Serial.printf("Illumination %d.\r\n", illuminationLevel);
+    illuminationOutput.set(!illuminationState);
+    mmi.setIllumination(illuminationLevel);
+    mmi.setHighlightLevel(max(0x46, illuminationLevel));
+  }
 }
 
 
