@@ -17,13 +17,13 @@ class InputTrigger : public Trigger {
     }
     virtual boolean getState() { 
       boolean newPinValue = digitalRead(this->pinNumber);
-      if (newPinValue != this->pinValue) {
+      if (newPinValue != this->desiredPinValue) {
         this->debounceTime = millis();
-        this->pinValue = newPinValue;
+        this->desiredPinValue = newPinValue;
       }
     
       if (millis() - this->debounceTime > this->debounceDurationLimit) {
-        return newPinValue == this->compareMode;
+        this->pinValue = this->desiredPinValue;
       }
     
       return this->pinValue == this->compareMode;
@@ -31,6 +31,7 @@ class InputTrigger : public Trigger {
   private:
     int pinNumber;
     int pinValue;
+    int desiredPinValue;
     boolean compareMode;
     unsigned int debounceDurationLimit;
     unsigned long debounceTime = 0;
