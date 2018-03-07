@@ -2,12 +2,14 @@
 #include "Output.h"
 #include "Mmi.h"
 
+
   /////////////
  // HELPERS // 
 /////////////
 
 #define min(X, Y)  ((X) < (Y) ? (X) : (Y))
 #define max(X, Y)  ((X) > (Y) ? (X) : (Y))
+
 
   /////////////////////
  // MMI DEFINITIONS // 
@@ -51,6 +53,7 @@ MmiLight mmiTopRightLight(0x0D, &mmi);
 MmiLight mmiBottomRightLight(0x0E, &mmi);
 MmiLight mmiRadioLight(0x18, &mmi);
 
+
   //////////////////////////////
  // ILLUMINATION DEFINITIONS // 
 //////////////////////////////
@@ -63,6 +66,7 @@ Output illuminationOutput(21, HIGH);
 uint8_t desiredIlluminationLevel = 0xFF / 2;
 uint8_t illuminationLevel = 0x00;
 bool illuminationState = false;
+
 
   //////////////////////////
  // IGNITION DEFINITIONS // 
@@ -112,17 +116,13 @@ int prevButton_SWC=0;
 
 //************************** Primera STW Inputs *******************************
 
-int IGN_KEY_RLY = 43;        // Zündschloss Relais  OK
-int IGN_KEY = 6;            // Zündschloss Kontakt OK
-int IGN_KEY_status = 0;
 int RevGear = 38;           // Rückwärtsgang  OK
 int RevGear_Stat = 0;
-int Handbrake_SW = 36;            // Handbremse  OK
-int Handbrake_SW_Stat =0;
 
+  ////////////////////////////
+ // KEY REMOTE DEFINITIONS //
+////////////////////////////
 
-
-// ****************************** Zentralverrieglung ****************************
 int ZvLock = 22;                            // Verriegeln // gedrÃ¼ckt 5V // losgelassen 0V getestet  OK
 int LOCK_RLY = 27;                          // OK
 int UNLOCK_RLY = 28;                        // OK
@@ -168,34 +168,34 @@ void setup() {
   Serial.begin(9600);                       // Serial Monitor
   Serial.println("Goodnight moon!");
     
-// **************************** Steering Wheel Control ***********
+  // **************************** Steering Wheel Control ***********
 
    pinMode(wheelPin, INPUT);
    pinMode(wheelPin2, INPUT);
 
 
-// *********************** Primera STW Inputs ************************
+  // *********************** Primera STW Inputs ************************
   
   pinMode(RevGear, INPUT_PULLUP);
   digitalWrite(RevGear, HIGH); 
      
-// *********************** Android OTG *******************************
+  // *********************** Android OTG *******************************
 
-pinMode(Android_OTG, OUTPUT);
-pinMode(USB_HUB, OUTPUT);
+  pinMode(Android_OTG, OUTPUT);
+  pinMode(USB_HUB, OUTPUT);
 
-// ************************* HVAC **********************************
+  // ************************* HVAC **********************************
 
-pinMode(Temp, OUTPUT);
-pinMode(Geblaese, OUTPUT);
-pinMode(Luftklappe, OUTPUT);
-pinMode(RR_DEF_SW, INPUT);
-pinMode(RR_DEF_LED, OUTPUT);
-pinMode(UMLUFT_SW, INPUT);
-pinMode(UMLUFT_FRE_LED, OUTPUT);
-pinMode(UMLUFT_REC_LED, OUTPUT);
-//pinMode(KLIMA_SW, INPUT);
-pinMode(KLIMA_LED, OUTPUT);
+  pinMode(Temp, OUTPUT);
+  pinMode(Geblaese, OUTPUT);
+  pinMode(Luftklappe, OUTPUT);
+  pinMode(RR_DEF_SW, INPUT);
+  pinMode(RR_DEF_LED, OUTPUT);
+  pinMode(UMLUFT_SW, INPUT);
+  pinMode(UMLUFT_FRE_LED, OUTPUT);
+  pinMode(UMLUFT_REC_LED, OUTPUT);
+  //pinMode(KLIMA_SW, INPUT);
+  pinMode(KLIMA_LED, OUTPUT);
 }
 
 void loop() {  
@@ -290,7 +290,7 @@ void updateMmi() {
     mmiRadioLight.toggle();
   }
 
-if (mmiMediaButton->isPressed()) {
+  if (mmiMediaButton->isPressed()) {
     Serial.println("Media down!");
   }
   else if (mmiMediaButton->wasPressedFor(1000)) {
@@ -305,7 +305,7 @@ if (mmiMediaButton->isPressed()) {
   }
 
 
-if (mmiNameButton->isPressed()) {
+  if (mmiNameButton->isPressed()) {
     Serial.println("Name down!");
   }
   else if (mmiNameButton->wasPressedFor(1000)) {
@@ -495,7 +495,7 @@ void startEngine() {
 
 
   //////////////////////////////
- // STEERING WHEEL FUNCTIONS // 
+ // STEERING WHEEL FUNCTIONS //
 //////////////////////////////
  
 void SWC() {
@@ -618,6 +618,11 @@ static unsigned long last_Time_PHONE = 0;
  return;
 
 }
+
+
+  //////////////////////////
+ // KEY REMOTE FUNCTIONS //
+//////////////////////////
 
 void FOB(){
   zvLockButton.update();
