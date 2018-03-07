@@ -9,11 +9,11 @@ class Trigger {
 
 class InputTrigger : public Trigger {
   public:
-    InputTrigger(int pinNumber, unsigned int debounceDurationLimit = 20, boolean compareMode = HIGH, int mode = INPUT) {
+    InputTrigger(int pinNumber, unsigned int debounceDuration = 20, boolean compareMode = HIGH, int mode = INPUT) {
       pinMode(pinNumber, mode);
       this->pinNumber = pinNumber;
       this->compareMode = compareMode;
-      this->debounceDurationLimit = debounceDurationLimit;
+      this->debounceDuration = debounceDuration;
     }
     virtual boolean getState() { 
       boolean newPinValue = digitalRead(this->pinNumber);
@@ -22,7 +22,7 @@ class InputTrigger : public Trigger {
         this->desiredPinValue = newPinValue;
       }
     
-      if (millis() - this->debounceTime > this->debounceDurationLimit) {
+      if (millis() - this->debounceTime > this->debounceDuration) {
         this->pinValue = this->desiredPinValue;
       }
     
@@ -33,7 +33,7 @@ class InputTrigger : public Trigger {
     int pinValue;
     int desiredPinValue;
     boolean compareMode;
-    unsigned int debounceDurationLimit;
+    unsigned int debounceDuration;
     unsigned long debounceTime = 0;
 };
 
