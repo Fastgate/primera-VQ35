@@ -7,6 +7,38 @@ class Sensor {
     virtual ~Sensor() {}
 };
 
+class AnalogSensor : public Sensor {
+  public:
+    AnalogSensor(int pinNumber, int compareMin, int compareMax, unsigned int debounceDuration = 20, int mode = INPUT) {
+      pinMode(pinNumber, mode);
+      this->pinNumber = pinNumber;
+      this->compareMin = compareMin;
+      this->compareMax = compareMax;
+      this->debounceDuration = debounceDuration;
+    }
+    virtual boolean getState() { 
+      boolean newPinValue = analogRead(this->pinNumber);
+      if (newPinValue != this->desiredPinValue) {
+        this->debounceTime = millis();
+        this->desiredPinValue = newPinValue;
+      }
+    
+      if (millis() - this->debounceTime > this->debounceDuration) {
+        this->pinValue = this->desiredPinValue;
+      }
+    
+      return this->pinValue >= this->compareMin && this->pinValue <= this->compareMax;
+    }
+  private:
+    int pinNumber;
+    int pinValue;
+    int desiredPinValue;
+    int compareMin;
+    int compareMax;
+    unsigned int debounceDuration;
+    unsigned long debounceTime = 0;
+};
+
 class DigitalSensor : public Sensor {
   public:
     DigitalSensor(int pinNumber, unsigned int debounceDuration = 20, boolean compareMode = HIGH, int mode = INPUT) {
