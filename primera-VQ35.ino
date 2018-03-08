@@ -113,12 +113,16 @@ Button headlightWasherButton(new DigitalSensor(34));
 TimedOutput headlightWasherRelay(new Output(40, HIGH));
 
 
-// ************************** Steering Wheel Control *****************************
+  /////////////////////////////
+ // STEERING WHEEL CONTROLS // 
+/////////////////////////////
 
-int wheelPin = A11; // steering wheel resistance reading pin  OK
-int wheelPin2 = A10; // steering wheel resistance reading pin  OK
-
-int prevButton_SWC=0;
+Button swcVolumeUpButton(new AnalogSensor(A11, 28, 34), 0);
+Button swcVolumeDownButton(new AnalogSensor(A10, 28, 34), 0);
+Button swcPhoneButton(new AnalogSensor(A11, 10, 16), 0);
+Button swcVoiceButton(new AnalogSensor(A10, 10, 16), 0);
+Button swcSeekUpButton(new AnalogSensor(A11, 15, 20), 0);
+Button swcSeekDownButton(new AnalogSensor(A10, 15, 20), 0);
 
 
 //************************** Primera STW Inputs *******************************
@@ -175,12 +179,6 @@ void setup() {
   Serial.begin(9600);                       // Serial Monitor
   Serial.println("Goodnight moon!");
     
-  // **************************** Steering Wheel Control ***********
-
-   pinMode(wheelPin, INPUT);
-   pinMode(wheelPin2, INPUT);
-
-
   // *********************** Primera STW Inputs ************************
   
   pinMode(RevGear, INPUT_PULLUP);
@@ -213,7 +211,7 @@ void loop() {
 
   updateHeadlightWasher();
 
-  SWC();                           // Steering Wheel Control
+  updateSwc();
 
   FOB();                           // Funkfernbedienung
 }
@@ -519,128 +517,39 @@ void updateHeadlightWasher(){
   //////////////////////////////
  // STEERING WHEEL FUNCTIONS //
 //////////////////////////////
- 
-void SWC() {
 
-static unsigned long last_Time_PHONE = 0;
-  static unsigned long last_Time_Vol_UP = 0;
-  static unsigned long last_Time_Vol_DOWN = 0;
-  static unsigned long last_Time_SPEAK = 0;
-  static unsigned long last_Time_SEEK_UP = 0;
-  static unsigned long last_Time_SEEK_DOWN = 0;
-  const unsigned int Entprellzeit = 40;           
-  static bool last_state_PHONE = false;           
-  static bool last_state_Vol_UP = false;         
-  static bool last_state_Vol_DOWN = false;           
-  static bool last_state_SPEAK = false;
-  static bool last_state_SEEK_UP = false;           
-  static bool last_state_SEEK_DOWN = false;
-  
-  int r= analogRead(wheelPin);
-  int r2= analogRead(wheelPin2);
-   bool read_Vol_UP= (r>=28 && r<=34) ;      
-   bool read_Vol_DOWN= (r2>=28 && r2<=34) ;      
-   bool read_PHONE= (r>=10 && r<=16) ;      
-   bool read_SPEAK= (r2>=10 && r2<=16) ;      
-   bool read_SEEK_UP= (r2>=15 && r2<=20) ;      
-   bool read_SEEK_DOWN= (r2>=15 && r2<=20) ;      
-  
+void updateSwc() {
+  swcVolumeUpButton.update();
+  swcVolumeDownButton.update();
+  swcPhoneButton.update();
+  swcVoiceButton.update();
+  swcSeekUpButton.update();
+  swcSeekDownButton.update();
 
-  if ((r>=28 && r<=34) != last_state_Vol_UP) {           
-    last_Time_Vol_UP = millis();                   
+  if (swcVolumeUpButton.wasPressedTimes(1)) {
+    Keyboard.press(KEY_MEDIA_VOLUME_INC);
+    Keyboard.release(KEY_MEDIA_VOLUME_INC);
   }
-
-  if ((r2>=28 && r2<=34) != last_state_Vol_DOWN) {           
-    last_Time_Vol_DOWN = millis();                   
+  if (swcVolumeDownButton.wasPressedTimes(1)) {
+    Keyboard.press(KEY_MEDIA_VOLUME_DEC);
+    Keyboard.release(KEY_MEDIA_VOLUME_DEC);
   }
-
-  if ((r>=10 && r<=16) != last_state_PHONE) {          
-    last_Time_PHONE = millis();                   
+  if (swcPhoneButton.wasPressedTimes(1)) {
+    // TODO start the phone app
   }
-
-  if ((r2>=10 && r2<=16) != last_state_SPEAK) {           
-    last_Time_SPEAK = millis();                   
+  if (swcVoiceButton.wasPressedTimes(1)) {
+    // TODO start google assistant
   }
-
-  if ((r2>=15 && r2<=20) != last_state_SEEK_UP) {           
-    last_Time_SEEK_UP = millis();                  
+  if (swcSeekUpButton.wasPressedTimes(1)) {
+    Keyboard.press(KEY_MEDIA_PREV_TRACK);
+    Keyboard.release(KEY_MEDIA_PREV_TRACK);
   }
-
-  if ((r>=15 && r<=20) != last_state_SEEK_DOWN) {           
-    last_Time_SEEK_DOWN = millis();                   
+  if (swcSeekDownButton.wasPressedTimes(1)) {
+    Keyboard.press(KEY_MEDIA_NEXT_TRACK);
+    Keyboard.release(KEY_MEDIA_NEXT_TRACK);
   }
-
- 
-
-  if ((millis() - last_Time_Vol_UP ) > Entprellzeit) {
-    if (read_Vol_UP == LOW) {                      
-      //Serial2.print( otvet2 = 8, HEX);                   
-      Serial.println("VOLUME_UP");
-      last_state_Vol_UP = !last_state_Vol_UP;       
-    }
-    else {
-      last_state_Vol_UP = !last_state_Vol_UP;       
-    }
-  }
-
-  if ((millis() - last_Time_Vol_DOWN) > Entprellzeit) {
-    if (read_Vol_DOWN == LOW) {                      
-      //Serial2.print( otvet2 = 7, HEX);                   
-      Serial.println("VOLUME_DOWN");
-      last_state_Vol_DOWN  = !last_state_Vol_DOWN;       
-    }
-    else {
-      last_state_Vol_DOWN = !last_state_Vol_DOWN;       
-    }
-  }
-
-  if ((millis() - last_Time_PHONE) > Entprellzeit) {
-    if (read_PHONE == LOW) {                      
-      //Serial2.print( otvet2 = 7, HEX);                   
-      Serial.println("PHONE");
-      last_state_PHONE = !last_state_PHONE;       
-    }
-    else {
-      last_state_PHONE = !last_state_PHONE;       
-    }
-  }
-
-  if ((millis() - last_Time_SPEAK) > Entprellzeit) {
-    if (read_SPEAK == LOW) {                      
-      //Serial2.print( otvet2 = 7, HEX);                   
-      Serial.println("SPEAK");
-      last_state_SPEAK = !last_state_SPEAK;       
-    }
-    else {
-      last_state_SPEAK = !last_state_SPEAK;       
-    }
-  }
-
-  if ((millis() - last_Time_SEEK_UP) > Entprellzeit) {
-    if (read_SEEK_UP == LOW) {                      
-      //Serial2.print( otvet2 = 5, HEX);                   
-      Serial.println("SEEK-UP");
-      last_state_SEEK_UP = !last_state_SEEK_UP;       
-    }
-    else {
-      last_state_SEEK_UP = !last_state_SEEK_UP;       
-    }
-  }
-
-  if ((millis() - last_Time_SEEK_DOWN) > Entprellzeit) {
-    if (read_SEEK_DOWN == LOW) {                      
-      //Serial2.print( otvet2 = 4, HEX);                   
-      Serial.println("SEEK-DOWN");
-      last_state_SEEK_DOWN = !last_state_SEEK_DOWN;       
-    }
-    else {
-      last_state_SEEK_DOWN = !last_state_SEEK_DOWN;       
-    }
-  }
- return;
-
 }
-
+ 
 
   //////////////////////////
  // KEY REMOTE FUNCTIONS //
