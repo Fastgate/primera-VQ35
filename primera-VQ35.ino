@@ -81,7 +81,6 @@ Button crankSensor(new InputTrigger(41, 20, LOW));
 InputTrigger clutchSensor(16, 20, LOW, INPUT_PULLUP);
 InputTrigger breakSensor(17, 20, LOW, INPUT_PULLUP);
 InputTrigger neutralSensor(36, 20, LOW, INPUT_PULLUP);
-InputTrigger clutch(16, 20, LOW, INPUT_PULLUP);
 InputTrigger keySensor(6, 20, LOW, INPUT_PULLUP);
 
 struct {
@@ -452,7 +451,7 @@ void updateIgnition() {
 
   if (ignitionButton.isPressed() && keySensor.getState()) {
     // switch engine on
-    if ((clutch.getState() || neutralSensor.getState()) && ignition.state != IGNITION_ON) {
+    if ((clutchSensor.getState() || neutralSensor.getState()) && ignition.state != IGNITION_ON) {
       startEngine();
     }
     // toggle through ignition states
@@ -461,7 +460,7 @@ void updateIgnition() {
     }
   }
 
-  ignitionLights.ready->set(!(clutch.getState() && ignition.state != IGNITION_ON && keySensor.getState()));
+  ignitionLights.ready->set(!(clutchSensor.getState() && ignition.state != IGNITION_ON && keySensor.getState()));
 
   // reenable ACC after crank has stopped
   if (crankSensor.wasPressedTimes(1)) {
