@@ -105,6 +105,14 @@ struct {
 } ignitionOutputs;
 
 
+  //////////////////////////////////
+ // HEADLIGHT WASHER DEFINITIONS // 
+//////////////////////////////////
+
+Button headlightWasherButton(new InputTrigger(34));
+TimedOutput headlightWasherRelay(new Output(40, HIGH));
+
+
 // ************************** Steering Wheel Control *****************************
 
 int wheelPin = A11; // steering wheel resistance reading pin  OK
@@ -202,6 +210,8 @@ void loop() {
   updateIllumination();
 
   updateIgnition();
+
+  updateHeadlightWasher();
 
   SWC();                           // Steering Wheel Control
 
@@ -489,6 +499,22 @@ void startEngine() {
   }
 }
 
+
+  ////////////////////////////////
+ // HEADLIGHT WASHER FUNCTIONS //
+////////////////////////////////
+
+void updateHeadlightWasher(){
+  headlightWasherButton.update();
+  headlightWasherRelay.update();
+
+  if (illuminationSensor.getState()) {
+    if (headlightWasherButton.wasPressedTimes(1)) {
+      Serial.println("ScheinwerferWaschanlage aktiviert");
+      headlightWasherRelay.set(LOW, 6000);
+    }
+  }
+}
 
   //////////////////////////////
  // STEERING WHEEL FUNCTIONS //
