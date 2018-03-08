@@ -58,7 +58,7 @@ MmiLight mmiRadioLight(0x18, &mmi);
  // ILLUMINATION DEFINITIONS // 
 //////////////////////////////
 
-Button illuminationToggleButton(new InputTrigger(37, 20, LOW, INPUT_PULLUP), 0);
+InputTrigger illuminationSensor(37, 20, LOW, INPUT_PULLUP);
 Button illuminationDimUpButton(new InputTrigger(45, 20, LOW, INPUT_PULLUP), 0);
 Button illuminationDimDownButton(new InputTrigger(46, 20, LOW, INPUT_PULLUP), 0);
 Output illuminationOutput(21, HIGH);
@@ -412,7 +412,6 @@ void mmiEvent(uint8_t code) {
 void updateIllumination() {
   illuminationDimUpButton.update();
   illuminationDimDownButton.update();
-  illuminationToggleButton.update();
   
   if (illuminationDimUpButton.wasPressedTimes(1)) {
     desiredIlluminationLevel = min(255, (desiredIlluminationLevel + 0xFF / 16));
@@ -420,11 +419,8 @@ void updateIllumination() {
   if (illuminationDimDownButton.wasPressedTimes(1)) {
     desiredIlluminationLevel = max(46, (desiredIlluminationLevel - 0xFF / 16));
   }  
-  if (illuminationToggleButton.wasPressedTimes(1)) {
-    illuminationState = !illuminationState;
-  }
 
-  changeIllumination(illuminationState, desiredIlluminationLevel);
+  changeIllumination(illuminationSensor.getState(), desiredIlluminationLevel);
 }
 
 void changeIllumination(bool newState, uint8_t newLevel) {
