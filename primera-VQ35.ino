@@ -58,9 +58,9 @@ MmiLight mmiRadioLight(0x18, &mmi);
  // ILLUMINATION DEFINITIONS // 
 //////////////////////////////
 
-InputTrigger illuminationSensor(37, 20, LOW, INPUT_PULLUP);
-Button illuminationDimUpButton(new InputTrigger(45, 20, LOW, INPUT_PULLUP), 0);
-Button illuminationDimDownButton(new InputTrigger(46, 20, LOW, INPUT_PULLUP), 0);
+DigitalSensor illuminationSensor(37, 20, LOW, INPUT_PULLUP);
+Button illuminationDimUpButton(new DigitalSensor(45, 20, LOW, INPUT_PULLUP), 0);
+Button illuminationDimDownButton(new DigitalSensor(46, 20, LOW, INPUT_PULLUP), 0);
 Output illuminationOutput(21, HIGH);
 
 uint8_t desiredIlluminationLevel = 0xFF / 2;
@@ -76,12 +76,12 @@ bool illuminationState = false;
 #define IGNITION_ACC  1
 #define IGNITION_ON   2
 
-Button ignitionButton(new InputTrigger(39, 20, LOW, INPUT_PULLUP), 0);
-Button crankSensor(new InputTrigger(41, 20, LOW));
-InputTrigger clutchSensor(16, 20, LOW, INPUT_PULLUP);
-InputTrigger breakSensor(17, 20, LOW, INPUT_PULLUP);
-InputTrigger neutralSensor(36, 20, LOW, INPUT_PULLUP);
-InputTrigger keySensor(6, 20, LOW, INPUT_PULLUP);
+Button ignitionButton(new DigitalSensor(39, 20, LOW, INPUT_PULLUP), 0);
+Button crankSensor(new DigitalSensor(41, 20, LOW));
+DigitalSensor clutchSensor(16, 20, LOW, INPUT_PULLUP);
+DigitalSensor breakSensor(17, 20, LOW, INPUT_PULLUP);
+DigitalSensor neutralSensor(36, 20, LOW, INPUT_PULLUP);
+DigitalSensor keySensor(6, 20, LOW, INPUT_PULLUP);
 
 struct {
   uint8_t state = IGNITION_OFF;
@@ -109,7 +109,7 @@ struct {
  // HEADLIGHT WASHER DEFINITIONS // 
 //////////////////////////////////
 
-Button headlightWasherButton(new InputTrigger(34));
+Button headlightWasherButton(new DigitalSensor(34));
 TimedOutput headlightWasherRelay(new Output(40, HIGH));
 
 
@@ -134,8 +134,8 @@ int ZvLock = 22;                            // Verriegeln // gedrÃ¼ckt 5V // l
 int LOCK_RLY = 27;                          // OK
 int UNLOCK_RLY = 28;                        // OK
 int ZvUnlock = 23;                          // Entriegeln // gedrÃ¼ckt 5V // losgelassen 0V  OK
-Button zvLockButton(new InputTrigger(ZvLock));
-Button zvUnlockButton(new InputTrigger(ZvUnlock));
+Button zvLockButton(new DigitalSensor(ZvLock));
+Button zvUnlockButton(new DigitalSensor(ZvUnlock));
 TimedOutput lockRelay(new Output(LOCK_RLY, HIGH));
 TimedOutput unlockRelay(new Output(UNLOCK_RLY, HIGH));
 int fob_did = 0;

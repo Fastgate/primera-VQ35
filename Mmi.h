@@ -3,9 +3,9 @@
 
 #include "Button.h"
 
-class MmiButtonTrigger : public Trigger {
+class MmiButtonSensor : public Sensor {
   public:
-    MmiButtonTrigger(int buttonId) {
+    MmiButtonSensor(int buttonId) {
       _buttonId = buttonId;
     }
     virtual boolean getState() { 
@@ -23,17 +23,17 @@ class MmiButtonTrigger : public Trigger {
 
 class MmiButton : public Button {
   public:
-    MmiButton(MmiButtonTrigger *trigger) : Button(trigger) {
-      _trigger = trigger;
+    MmiButton(MmiButtonSensor *sensor) : Button(sensor) {
+      _sensor = sensor;
     }
     void updateTrigger(int buttonId, boolean newState) {
-      _trigger->update(buttonId, newState);
+      _sensor->update(buttonId, newState);
     }
     ~MmiButton() {
-      delete _trigger;
+      delete _sensor;
     }
   private:
-    MmiButtonTrigger *_trigger;
+    MmiButtonSensor *_sensor;
 };
 
 class MmiWheel {
@@ -95,7 +95,7 @@ public:
     if (_assignedButtonCount >= _buttonCount) {
       return nullptr;
     }
-    MmiButton *button = new MmiButton(new MmiButtonTrigger(buttonId));
+    MmiButton *button = new MmiButton(new MmiButtonSensor(buttonId));
     _buttons[_assignedButtonCount] = button;
     _assignedButtonCount++;
     return button;

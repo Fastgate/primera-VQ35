@@ -1,15 +1,15 @@
 #ifndef BUTTON_H
 #define BUTTON_H
 
-class Trigger {
+class Sensor {
   public: 
     virtual boolean getState() = 0;
-    virtual ~Trigger() {}
+    virtual ~Sensor() {}
 };
 
-class InputTrigger : public Trigger {
+class DigitalSensor : public Sensor {
   public:
-    InputTrigger(int pinNumber, unsigned int debounceDuration = 20, boolean compareMode = HIGH, int mode = INPUT) {
+    DigitalSensor(int pinNumber, unsigned int debounceDuration = 20, boolean compareMode = HIGH, int mode = INPUT) {
       pinMode(pinNumber, mode);
       this->pinNumber = pinNumber;
       this->compareMode = compareMode;
@@ -39,8 +39,8 @@ class InputTrigger : public Trigger {
 
 class Button {
   public:
-    Button(Trigger *trigger, unsigned int pushDurationLimit = 300) {
-      _trigger = trigger;
+    Button(Sensor *sensor, unsigned int pushDurationLimit = 300) {
+      _sensor = sensor;
       _pushDurationLimit = pushDurationLimit;
     }
     virtual ~Button() {}
@@ -76,12 +76,12 @@ class Button {
 
     void update() {
       unsigned long updateTime = millis();
-      boolean newTriggerState = _trigger->getState();
+      boolean newSensorState = _sensor->getState();
       
-      if (_triggerState != newTriggerState) {
+      if (_sensorState != newSensorState) {
         int idleState = updateTime - _pressTime < _pushDurationLimit ? Button::STATE_WAITING : Button::STATE_RELEASED;
-        _buttonState = newTriggerState ? Button::STATE_PRESSED : idleState;
-        _triggerState = newTriggerState;
+        _buttonState = newSensorState ? Button::STATE_PRESSED : idleState;
+        _sensorState = newSensorState;
         _stateTime = updateTime;
         if (_buttonState == Button::STATE_PRESSED) {
           _pressTime = updateTime;
@@ -97,7 +97,7 @@ class Button {
           _buttonState = updateTime - _pressTime < _pushDurationLimit ? Button::STATE_WAITING : Button::STATE_RELEASED;
         }
         else {
-          _buttonState = newTriggerState ? Button::STATE_HELD : STATE_IDLE;  
+          _buttonState = newSensorState ? Button::STATE_HELD : STATE_IDLE;  
         }
       }
     }
@@ -109,8 +109,8 @@ class Button {
     static const int STATE_RELEASED = 3;
     static const int STATE_WAITING  = 4;
   
-    Trigger *_trigger;
-    boolean _triggerState = false;
+    Sensor *_sensor;
+    boolean _sensorState = false;
 
     int _buttonState = STATE_IDLE;
     
