@@ -77,15 +77,16 @@ bool illuminationState = false;
 #define IGNITION_ON   2
 
 Button ignitionButton(new DigitalSensor(39, 20, HIGH, INPUT), 0);
-Button crankSensor(new DigitalSensor(41, 20, LOW));
+Button crankSensor(new DigitalSensor(41, 20, LOW, OUTPUT));
 DigitalSensor clutchSensor(16, 20, HIGH, INPUT);
-DigitalSensor breakSensor(17, 20, HIGH, INPUT);
+DigitalSensor brakeSensor(17, 20, HIGH, INPUT);
 DigitalSensor neutralSensor(36, 20, HIGH, INPUT);
 DigitalSensor keySensor(6, 20, HIGH, INPUT);
 
 struct {
   uint8_t state = IGNITION_OFF;
   bool engine   = false;
+  bool crank    = false;
 } ignition;
 
 struct {
@@ -451,11 +452,16 @@ void changeIllumination(bool newState, uint8_t newLevel) {
 
 void updateIgnition() {
   ignitionButton.update();
+  crankSensor.update();
   ignitionOutputs.crank->update();
+  bool isClutchPressed  = clutchSensor.getState();
+  bool isNeutralGear    = neutralSensor.getState();
+  bool isBrakePressed   = brakeSensor.getState();
+  bool isKeyInserted    = keySensor.getState();
 
-  if (ignitionButton.isPressed() && keySensor.getState() && !ignition.engine) {
+  if (ignitionButton.isPressed() && isKeyInserted && !ignition.engine) {
     // switch engine on
-    if (clutchSensor.getState() || neutralSensor.getState()) {
+    if (isClutchPressed) {
       startEngine();
     }
     // toggle through ignition states
@@ -463,16 +469,15 @@ void updateIgnition() {
       setIgnition(ignition.state >= IGNITION_ON ? IGNITION_OFF : ignition.state+1);
     }
   }
-  if (ignitionButton.isPressed() && keySensor.getState() && ignition.engine && breakSensor.getState()) {
+  if (ignitionButton.isPressed() && ignition.engine && isBrakePressed) {
     stopEngine();
   }
-  
 
-  ignitionLights.ready->set(!(clutchSensor.getState() && ignition.state != IGNITION_ON && keySensor.getState()));
+  ignitionLights.ready->set(!(isClutchPressed && ignition.state != IGNITION_ON && isKeyInserted));
 
   // reenable ACC after crank has stopped
   if (crankSensor.wasPressedTimes(1)) {
-    ignitionOutputs.acc->set(ignition.state >= IGNITION_ACC);
+    ignitionOutputs.acc->set(!(ignition.state >= IGNITION_ACC));
   }
 }
 
@@ -493,8 +498,9 @@ void setIgnition(uint8_t newState) {
 }
 
 void stopEngine() {
-  if (ignition.engine && breakSensor.getState()) {
+  if (ignition.engine && brakeSensor.getState()) {
     setIgnition(IGNITION_OFF);
+    ignition.engine = false;
     Serial.println("Stop engine!");
   }
 }
