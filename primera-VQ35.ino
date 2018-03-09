@@ -16,7 +16,7 @@
 /////////////////////
 
 // Buttons
-Mmi mmi(&Serial5, SERIAL_8N2_RXINV, 16, 17, 2);
+Mmi mmi(&Serial3, SERIAL_8N2_RXINV, 16, 17, 2);
 MmiButton *mmiBigWheelButton    = mmi.createButton(0x01);
 MmiButton *mmiMediaButton       = mmi.createButton(0x02);
 MmiButton *mmiNameButton        = mmi.createButton(0x03);
@@ -76,12 +76,12 @@ bool illuminationState = false;
 #define IGNITION_ACC  1
 #define IGNITION_ON   2
 
-Button ignitionButton(new DigitalSensor(39, 20, LOW, INPUT_PULLUP), 0);
+Button ignitionButton(new DigitalSensor(39, 20, HIGH, INPUT), 0);
 Button crankSensor(new DigitalSensor(41, 20, LOW));
-DigitalSensor clutchSensor(16, 20, LOW, INPUT_PULLUP);
-DigitalSensor breakSensor(17, 20, LOW, INPUT_PULLUP);
-DigitalSensor neutralSensor(36, 20, LOW, INPUT_PULLUP);
-DigitalSensor keySensor(6, 20, LOW, INPUT_PULLUP);
+DigitalSensor clutchSensor(16, 20, HIGH, INPUT);
+DigitalSensor breakSensor(17, 20, HIGH, INPUT);
+DigitalSensor neutralSensor(36, 20, HIGH, INPUT);
+DigitalSensor keySensor(6, 20, HIGH, INPUT);
 
 struct {
   uint8_t state = IGNITION_OFF;
@@ -453,9 +453,9 @@ void updateIgnition() {
   ignitionButton.update();
   ignitionOutputs.crank->update();
 
-  if (ignitionButton.isPressed() && keySensor.getState()) {
+  if (ignitionButton.isPressed() && keySensor.getState() && !ignition.engine) {
     // switch engine on
-    if ((clutchSensor.getState() || neutralSensor.getState()) && ignition.state != IGNITION_ON) {
+    if (clutchSensor.getState() || neutralSensor.getState()) {
       startEngine();
     }
     // toggle through ignition states
@@ -463,12 +463,16 @@ void updateIgnition() {
       setIgnition(ignition.state >= IGNITION_ON ? IGNITION_OFF : ignition.state+1);
     }
   }
+  if (ignitionButton.isPressed() && keySensor.getState() && ignition.engine && breakSensor.getState()) {
+    stopEngine();
+  }
+  
 
   ignitionLights.ready->set(!(clutchSensor.getState() && ignition.state != IGNITION_ON && keySensor.getState()));
 
   // reenable ACC after crank has stopped
   if (crankSensor.wasPressedTimes(1)) {
-    ignitionLights.acc->set(ignition.state >= IGNITION_ACC);
+    ignitionOutputs.acc->set(ignition.state >= IGNITION_ACC);
   }
 }
 
@@ -476,7 +480,7 @@ void setIgnition(uint8_t newState) {
   if (ignition.state != newState) {
     ignition.state = newState;
 
-    ignitionOutputs.acc->set(!(ignition.state >= IGNITION_ACC && !ignitionOutputs.crank->getState()));
+    ignitionOutputs.acc->set(!(ignition.state >= IGNITION_ACC && ignitionOutputs.crank->getState()));
     ignitionLights.acc->set(!(ignition.state == IGNITION_ACC));
     ignitionLights.nats->set(!(ignition.state >= IGNITION_ACC));
 
@@ -488,12 +492,20 @@ void setIgnition(uint8_t newState) {
   }
 }
 
+void stopEngine() {
+  if (ignition.engine && breakSensor.getState()) {
+    setIgnition(IGNITION_OFF);
+    Serial.println("Stop engine!");
+  }
+}
+
 void startEngine() {
-  setIgnition(IGNITION_ON);
-  if (clutchSensor.getState() || neutralSensor.getState()) {
+  if (!ignition.engine && (clutchSensor.getState() || neutralSensor.getState())) {
+    setIgnition(IGNITION_ON);
+    ignition.engine = true;
     ignitionOutputs.acc->set(HIGH);
     ignitionOutputs.crank->set(LOW, 600);
-    Serial.println("Start engine!");    
+    Serial.println("Start engine!");
   }
 }
 
