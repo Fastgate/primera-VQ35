@@ -468,21 +468,28 @@ void updateIgnition() {
   bool isBrakePressed   = brakeSensor.getState();
   bool isKeyInserted    = keySensor.getState();
 
-  // ignition button
-  if (ignitionButton.isPressed() && isKeyInserted && !ignition.engine) {
-    // switch engine on
-    if (isClutchPressed) {
-      startEngine();
-    }
-    // toggle through ignition states
-    else {
-      setIgnition(ignition.state >= IGNITION_ON ? IGNITION_OFF : ignition.state+1);
-    }
-  }
-  else if (ignitionButton.isPressed() && ignition.engine && isBrakePressed) {
-    stopEngine();
-  }
+  // key signal
+  ignitionOutputs.key->set(!(isKeyInserted || ignition.state >= IGNITION_ON));
 
+  // ignition button
+  if (!ignition.engine) {  
+    if (ignitionButton.isPressed() && isKeyInserted) {
+      // switch engine on
+      if (isClutchPressed) {
+        startEngine();
+      }
+      // toggle through ignition states
+      else {
+        setIgnition(ignition.state >= IGNITION_ON ? IGNITION_OFF : ignition.state+1);
+      }
+    }
+  }
+  else {
+    if (ignitionButton.isPressed() && isBrakePressed) {
+      stopEngine();
+    }
+  }
+  
   // ignition light
   if (ignition.engine) {
     if (crankSensor.isHeld()) {
@@ -497,7 +504,12 @@ void updateIgnition() {
       setIgnitionLight(2, 1000, 100);
     }
     else {
-      setIgnitionLight(1, 2000, 100);
+      if (ignition.state >= IGNITION_ACC) {
+        setIgnitionLight(1, 0, 0);
+      }
+      else {
+        setIgnitionLight(1, 2000, 100);
+      }
     }
   }
   else if (unlockRelay.getState() == LOW) {
