@@ -432,10 +432,6 @@ void updateIllumination() {
     desiredIlluminationLevel = max(46, (desiredIlluminationLevel - 0xFF / 16));
   }  
 
-  if (illuminationDimUpButton.wasHeldFor(1000, 500)) {
-    Serial.println("KURVA");
-  }
-
   changeIllumination(illuminationSensor.getState(), desiredIlluminationLevel);
 }
 
