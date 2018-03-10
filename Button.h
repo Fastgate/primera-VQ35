@@ -92,7 +92,9 @@ class Button {
       return _buttonState == Button::STATE_RELEASED &&
         _pressCounter >= count;
     }
-    /* FIXME: not working
+    boolean isHeld() {
+      return _buttonState == Button::STATE_HELD;
+    }
     boolean wasHeldFor(unsigned int duration, unsigned int repeatTime = 0) {
       unsigned long currentTime = millis();
       int a = (int(currentTime - _stateTime) - duration + int(repeatTime * 0.5)) / repeatTime;
@@ -104,7 +106,6 @@ class Button {
       return _buttonState == Button::STATE_HELD &&
         (_stateTime >= duration && (repeatTime == 0 || currentTime >= delayedPressTime));
     }
-    */
 
     void update() {
       unsigned long updateTime = millis();

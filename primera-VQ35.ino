@@ -76,6 +76,8 @@ bool illuminationState = false;
 #define IGNITION_ACC  1
 #define IGNITION_ON   2
 
+#define CRANK_DURATION 3000
+
 Button ignitionButton(new DigitalSensor(39, 20, HIGH, INPUT), 0);
 Button crankSensor(new DigitalSensor(41, 20, LOW, OUTPUT));
 DigitalSensor clutchSensor(16, 20, HIGH, INPUT);
@@ -90,11 +92,12 @@ struct {
 } ignition;
 
 struct {
-  Output *ready   = new Output(20, HIGH);
-  Output *button  = new Output(24, HIGH);
-  Output *acc     = new Output(5, HIGH);
-  Output *on      = new Output(2, HIGH);
-  Output *nats    = new Output(57, HIGH);
+  uint8_t state         = 0;
+  IntervalOutput *green = new IntervalOutput(new Output(20, HIGH));
+  IntervalOutput *red   = new IntervalOutput(new Output(24, HIGH));
+  Output *acc           = new Output(5, HIGH);
+  Output *on            = new Output(2, HIGH);
+  Output *nats          = new Output(57, HIGH);
 } ignitionLights;
 
 struct {
@@ -429,6 +432,10 @@ void updateIllumination() {
     desiredIlluminationLevel = max(46, (desiredIlluminationLevel - 0xFF / 16));
   }  
 
+  if (illuminationDimUpButton.wasHeldFor(1000, 500)) {
+    Serial.println("KURVA");
+  }
+
   changeIllumination(illuminationSensor.getState(), desiredIlluminationLevel);
 }
 
@@ -451,6 +458,8 @@ void changeIllumination(bool newState, uint8_t newLevel) {
 ////////////////////////
 
 void updateIgnition() {
+  ignitionLights.red->update();
+  ignitionLights.green->update();
   ignitionButton.update();
   crankSensor.update();
   ignitionOutputs.crank->update();
@@ -459,6 +468,7 @@ void updateIgnition() {
   bool isBrakePressed   = brakeSensor.getState();
   bool isKeyInserted    = keySensor.getState();
 
+  // ignition button
   if (ignitionButton.isPressed() && isKeyInserted && !ignition.engine) {
     // switch engine on
     if (isClutchPressed) {
@@ -469,15 +479,59 @@ void updateIgnition() {
       setIgnition(ignition.state >= IGNITION_ON ? IGNITION_OFF : ignition.state+1);
     }
   }
-  if (ignitionButton.isPressed() && ignition.engine && isBrakePressed) {
+  else if (ignitionButton.isPressed() && ignition.engine && isBrakePressed) {
     stopEngine();
   }
 
-  ignitionLights.ready->set(!(isClutchPressed && ignition.state != IGNITION_ON && isKeyInserted));
+  // ignition light
+  if (ignition.engine) {
+    if (crankSensor.isHeld()) {
+      setIgnitionLight(3, 100, 50);
+    }
+    else {
+      setIgnitionLight(2, 0, 0);
+    }
+  }
+  else if (isKeyInserted) {
+    if (isClutchPressed) {
+      setIgnitionLight(2, 1000, 100);
+    }
+    else {
+      setIgnitionLight(1, 2000, 100);
+    }
+  }
+  else if (unlockRelay.getState() == LOW) {
+    setIgnitionLight(1, 0, 0);
+  }
+  else {
+    setIgnitionLight(0, 0, 0);
+  }
 
   // reenable ACC after crank has stopped
   if (crankSensor.wasPressedTimes(1)) {
     ignitionOutputs.acc->set(!(ignition.state >= IGNITION_ACC));
+  }
+}
+
+void setIgnitionLight(uint8_t newState, unsigned int interval, unsigned int duration) {
+  if (newState != ignitionLights.state || ignitionLights.red->getInterval() != interval || ignitionLights.green->getDuration() != duration) {
+    if (newState == 0) {
+      ignitionLights.red->reset();
+      ignitionLights.green->reset();
+    }
+    if (newState == 1) {
+      ignitionLights.red->blink(interval, duration);
+      ignitionLights.green->reset();
+    }
+    if (newState == 2) {
+      ignitionLights.red->reset();
+      ignitionLights.green->blink(interval, duration);
+    }
+    if (newState == 3) {
+      ignitionLights.red->blink(interval, duration);
+      ignitionLights.green->blink(interval, duration);
+    }
+    ignitionLights.state = newState;
   }
 }
 
@@ -510,7 +564,7 @@ void startEngine() {
     setIgnition(IGNITION_ON);
     ignition.engine = true;
     ignitionOutputs.acc->set(HIGH);
-    ignitionOutputs.crank->set(LOW, 600);
+    ignitionOutputs.crank->set(LOW, CRANK_DURATION);
     Serial.println("Start engine!");
   }
 }
