@@ -96,19 +96,19 @@ class Button {
       return _buttonState == Button::STATE_HELD;
     }
     boolean wasHeldFor(unsigned int duration, unsigned int repeatTime = 0) {
-      unsigned long currentTime = millis();
-      int a = (int(currentTime - _stateTime) - duration + int(repeatTime * 0.5)) / repeatTime;
-      if(a < 0) {
-        a = 0;
+      if (_buttonState != Button::STATE_HELD) {
+        return false;
       }
-      unsigned long delayedPressTime = duration + _stateTime + repeatTime * a;
-  
-      return _buttonState == Button::STATE_HELD &&
-        (_stateTime >= duration && (repeatTime == 0 || currentTime >= delayedPressTime));
+      
+      int intervalTime = ((_updateTime - _pressTime) - duration + (repeatTime / 2)) / repeatTime;
+      unsigned long delayedPressTime = duration + _pressTime + repeatTime * intervalTime;
+      return (_updateTime >= delayedPressTime) && (_previousUpdateTime < delayedPressTime);
     }
 
     void update() {
       unsigned long updateTime = millis();
+      _previousUpdateTime = _updateTime;
+      _updateTime = updateTime;
       boolean newSensorState = _sensor->getState();
       
       if (_sensorState != newSensorState) {
@@ -151,6 +151,8 @@ class Button {
     unsigned int _pressCounter = 0;
     unsigned int _pushDurationLimit = 0;
     unsigned int _pressTime = 0;
+    unsigned long _updateTime = 0;
+    unsigned long _previousUpdateTime = 0;
 
     int getState(boolean pinValue, unsigned long updateTime);
 };
