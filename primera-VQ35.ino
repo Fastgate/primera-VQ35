@@ -426,10 +426,10 @@ void updateIllumination() {
   illuminationDimUpButton.update();
   illuminationDimDownButton.update();
   
-  if (illuminationDimUpButton.wasPressedTimes(1)) {
+  if (illuminationDimUpButton.isPressed() || illuminationDimUpButton.wasHeldFor(500, 200)) {
     desiredIlluminationLevel = min(255, (desiredIlluminationLevel + 0xFF / 16));
   }
-  if (illuminationDimDownButton.wasPressedTimes(1)) {
+  if (illuminationDimDownButton.isPressed() || illuminationDimDownButton.wasHeldFor(500, 200)) {
     desiredIlluminationLevel = max(46, (desiredIlluminationLevel - 0xFF / 16));
   }  
 
