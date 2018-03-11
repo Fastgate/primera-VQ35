@@ -95,14 +95,17 @@ class Button {
     boolean isHeld() {
       return _buttonState == Button::STATE_HELD;
     }
-    boolean wasHeldFor(unsigned int duration, unsigned int repeatTime = 0) {
+    boolean wasHeldFor(int duration, int repeatTime = 0) {
       if (_buttonState != Button::STATE_HELD) {
         return false;
       }
       
-      int intervalTime = ((_updateTime - _pressTime) - duration + (repeatTime / 2)) / repeatTime;
+      int intervalTime = (int(_updateTime - _pressTime) - duration + int(repeatTime * 0.5)) / repeatTime;
+      if (intervalTime < 0) {
+        intervalTime = 0;
+      }
       unsigned long delayedPressTime = duration + _pressTime + repeatTime * intervalTime;
-      return (_updateTime >= delayedPressTime) && (_previousUpdateTime < delayedPressTime);
+      return _updateTime >= delayedPressTime && _previousUpdateTime < delayedPressTime;
     }
 
     void update() {
