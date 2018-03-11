@@ -77,6 +77,7 @@ bool illuminationState = false;
 #define IGNITION_ON   2
 
 #define CRANK_DURATION 3000
+#define ENGINE_BUTTON_STOP_DURATION 3000
 
 Button ignitionButton(new DigitalSensor(39, 20, HIGH, INPUT), 0);
 Button crankSensor(new DigitalSensor(41, 20, LOW, OUTPUT));
@@ -481,7 +482,7 @@ void updateIgnition() {
     }
   }
   else {
-    if (ignitionButton.isPressed() && isBrakePressed) {
+    if (ignitionButton.isPressed() && isBrakePressed || ignitionButton.wasHeldFor(ENGINE_BUTTON_STOP_DURATION)) {
       stopEngine();
     }
   }
@@ -560,7 +561,7 @@ void setIgnition(uint8_t newState) {
 }
 
 void stopEngine() {
-  if (ignition.engine && brakeSensor.getState()) {
+  if (ignition.engine) {
     setIgnition(IGNITION_OFF);
     ignition.engine = false;
     Serial.println("Stop engine!");
