@@ -3,32 +3,59 @@
 
 class Output {
   public:
-    Output(int pinNumber, boolean normally = LOW) {
+    Output(int pinNumber, int normally = LOW) {
       this->pinNumber = pinNumber;
       this->normally = normally;
       pinMode(this->pinNumber, OUTPUT);
-      this->reset();
     }
-    void set(boolean value) {
+    void deactivate() {
+      this->set(this->normally);
+    }
+    boolean isActive() {
+      return !this->getState() != this->normally;
+    }
+    virtual int getState() = 0;
+    virtual void set(int value) = 0;
+    virtual ~Output() {};
+  protected:
+    int pinNumber;
+    int normally;
+};
+
+class DigitalOutput : public Output {
+  public:
+    DigitalOutput(int pinNumber, int active = HIGH) : Output(pinNumber, !active) {
+      // cannot call this in the base class :-(
+      this->deactivate();
+    }
+    int getState() {
+      return digitalRead(this->pinNumber);
+    }
+    void set(int value) {
       digitalWrite(this->pinNumber, value);
     }
     void activate() {
       this->set(!this->normally);
     }
-    void reset() {
-      this->set(this->normally);
+};
+
+class AnalogOutput : public Output {
+  public:
+    AnalogOutput(int pinNumber, int normally = LOW) : Output(pinNumber, normally) {
+      // cannot call this in the base class :-(
+      this->deactivate();
     }
-    boolean getState() {
-      return digitalRead(this->pinNumber);
+    int getState() {
+      return analogRead(this->pinNumber);
     }
-  private:
-    int pinNumber;
-    boolean normally;
+    void set(int value) {
+      analogWrite(this->pinNumber, value);
+    }
 };
 
 class IntervalOutput {
   public:
-    IntervalOutput(Output *output) {
+    IntervalOutput(DigitalOutput *output) {
       this->output = output;
     }
     void blink(unsigned int interval, unsigned int duration) {
@@ -41,8 +68,8 @@ class IntervalOutput {
       this->switchTime = 0;
       this->isActive = true;
     }
-    void reset() {
-      this->output->reset();
+    void deactivate() {
+      this->output->deactivate();
       this->switchTime = 0;
       this->isActive = false;
     }
@@ -60,7 +87,7 @@ class IntervalOutput {
           isOutputActive = true;
         }
         else if (isOutputActive && intervalTime >= duration) {
-          this->output->reset();
+          this->output->deactivate();
           isOutputActive = false;
         }
   
@@ -70,7 +97,7 @@ class IntervalOutput {
       }
     }
   private:
-    Output *output;
+    DigitalOutput *output;
     
     unsigned long switchTime = 0;
     unsigned int interval    = 0;
@@ -84,7 +111,7 @@ class TimedOutput {
     TimedOutput(Output *output) {
       this->output = output;
     }
-    void set(boolean value, unsigned int duration) {
+    void set(int value, unsigned int duration) {
       this->switchTime = millis();
       this->switchDuration = duration;
       this->output->set(value);
@@ -94,7 +121,7 @@ class TimedOutput {
     }
     void update() {
       if (millis() - switchTime >= this->switchDuration) {
-        this->output->reset();
+        this->output->deactivate();
       }
     }
   private:

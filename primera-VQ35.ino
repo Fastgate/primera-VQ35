@@ -61,7 +61,7 @@ MmiLight mmiRadioLight(0x18, &mmi);
 DigitalSensor illuminationSensor(37, 20, LOW, INPUT_PULLUP);
 Button illuminationDimUpButton(new DigitalSensor(45, 20, LOW, INPUT_PULLUP), 0);
 Button illuminationDimDownButton(new DigitalSensor(46, 20, LOW, INPUT_PULLUP), 0);
-Output illuminationOutput(21, HIGH);
+AnalogOutput illuminationOutput(21);
 
 uint8_t desiredIlluminationLevel = 0xFF / 2;
 uint8_t illuminationLevel = 0x00;
@@ -94,19 +94,19 @@ struct {
 
 struct {
   uint8_t state         = 0;
-  IntervalOutput *green = new IntervalOutput(new Output(20, HIGH));
-  IntervalOutput *red   = new IntervalOutput(new Output(24, HIGH));
-  Output *acc           = new Output(5, HIGH);
-  Output *on            = new Output(2, HIGH);
-  Output *nats          = new Output(57, HIGH);
+  IntervalOutput *green = new IntervalOutput(new DigitalOutput(20, LOW));
+  IntervalOutput *red   = new IntervalOutput(new DigitalOutput(24, LOW));
+  DigitalOutput *acc    = new DigitalOutput(5, LOW);
+  DigitalOutput *on     = new DigitalOutput(2, LOW);
+  DigitalOutput *nats   = new DigitalOutput(57, LOW);
 } ignitionLights;
 
 struct {
-  Output *acc         = new Output(42, HIGH);
-  Output *on          = new Output(44, HIGH);
-  Output *key         = new Output(43, HIGH);
-  Output *nats        = new Output(53, HIGH);
-  TimedOutput *crank  = new TimedOutput(new Output(41, HIGH));
+  DigitalOutput *acc  = new DigitalOutput(42, LOW);
+  DigitalOutput *on   = new DigitalOutput(44, LOW);
+  DigitalOutput *key  = new DigitalOutput(43, LOW);
+  DigitalOutput *nats = new DigitalOutput(53, LOW);
+  TimedOutput *crank  = new TimedOutput(new DigitalOutput(41, LOW));
 } ignitionOutputs;
 
 
@@ -115,7 +115,7 @@ struct {
 //////////////////////////////////
 
 Button headlightWasherButton(new DigitalSensor(34));
-TimedOutput headlightWasherRelay(new Output(40, HIGH));
+TimedOutput headlightWasherRelay(new DigitalOutput(40, LOW));
 
 
   /////////////////////////////
@@ -145,8 +145,8 @@ int UNLOCK_RLY = 28;                        // OK
 int ZvUnlock = 23;                          // Entriegeln // gedrÃ¼ckt 5V // losgelassen 0V  OK
 Button zvLockButton(new DigitalSensor(ZvLock));
 Button zvUnlockButton(new DigitalSensor(ZvUnlock));
-TimedOutput lockRelay(new Output(LOCK_RLY, HIGH));
-TimedOutput unlockRelay(new Output(UNLOCK_RLY, HIGH));
+TimedOutput lockRelay(new DigitalOutput(LOCK_RLY, LOW));
+TimedOutput unlockRelay(new DigitalOutput(UNLOCK_RLY, LOW));
 int fob_did = 0;
 
 
@@ -482,7 +482,7 @@ void updateIgnition() {
     }
   }
   else {
-    if (ignitionButton.isPressed() && isBrakePressed || ignitionButton.wasHeldFor(ENGINE_BUTTON_STOP_DURATION)) {
+    if ((ignitionButton.isPressed() && isBrakePressed) || ignitionButton.wasHeldFor(ENGINE_BUTTON_STOP_DURATION)) {
       stopEngine();
     }
   }
@@ -525,15 +525,15 @@ void updateIgnition() {
 void setIgnitionLight(uint8_t newState, unsigned int interval, unsigned int duration) {
   if (newState != ignitionLights.state || ignitionLights.red->getInterval() != interval || ignitionLights.green->getDuration() != duration) {
     if (newState == 0) {
-      ignitionLights.red->reset();
-      ignitionLights.green->reset();
+      ignitionLights.red->deactivate();
+      ignitionLights.green->deactivate();
     }
     if (newState == 1) {
       ignitionLights.red->blink(interval, duration);
-      ignitionLights.green->reset();
+      ignitionLights.green->deactivate();
     }
     if (newState == 2) {
-      ignitionLights.red->reset();
+      ignitionLights.red->deactivate();
       ignitionLights.green->blink(interval, duration);
     }
     if (newState == 3) {
