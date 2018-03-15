@@ -98,14 +98,14 @@ struct {
   IntervalOutput *red   = new IntervalOutput(new DigitalOutput(24, LOW));
   DigitalOutput *acc    = new DigitalOutput(5, LOW);
   DigitalOutput *on     = new DigitalOutput(2, LOW);
-  DigitalOutput *nats   = new DigitalOutput(57, LOW);
+  DigitalOutput *nats   = new DigitalOutput(53, LOW);
 } ignitionLights;
 
 struct {
   DigitalOutput *acc  = new DigitalOutput(42, LOW);
   DigitalOutput *on   = new DigitalOutput(44, LOW);
   DigitalOutput *key  = new DigitalOutput(43, LOW);
-  DigitalOutput *nats = new DigitalOutput(53, LOW);
+  DigitalOutput *nats = new DigitalOutput(57, LOW);
   TimedOutput *crank  = new TimedOutput(new DigitalOutput(41, LOW));
 } ignitionOutputs;
 
