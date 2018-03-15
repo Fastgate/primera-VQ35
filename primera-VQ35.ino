@@ -413,6 +413,7 @@ void mmiEvent(uint8_t code) {
     mmi.enableKeys();
   }
   else if (code == 0x35) {
+    mmi.setIllumination(illuminationLevel);
     mmi.setHighlightLevel(0x99);
   }
 }
