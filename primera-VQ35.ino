@@ -443,7 +443,7 @@ void changeIllumination(bool newState, uint8_t newLevel) {
     illuminationLevel = newLevel;
     
     Serial.printf("Illumination %d.\r\n", illuminationLevel);
-    illuminationOutput.set(!illuminationState);
+    illuminationOutput.set(illuminationLevel);
     mmi.setIllumination(illuminationLevel);
     mmi.setHighlightLevel(max(0x46, illuminationLevel));
   }
