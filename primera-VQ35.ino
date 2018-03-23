@@ -554,7 +554,6 @@ void setIgnition(uint8_t newState) {
     ignitionLights.nats->set(!(ignition.state >= IGNITION_ACC));
 
     ignitionOutputs.nats->set(!(ignition.state >= IGNITION_ON));
-    ignitionOutputs.key->set(!(ignition.state >= IGNITION_ON));
     ignitionOutputs.on->set(!(ignition.state >= IGNITION_ON));
     ignitionLights.on->set(!(ignition.state >= IGNITION_ON));
     Serial.printf("Ignition: %d.\r\n", ignition.state);
