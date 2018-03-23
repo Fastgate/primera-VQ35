@@ -114,7 +114,7 @@ struct {
  // HEADLIGHT WASHER DEFINITIONS // 
 //////////////////////////////////
 
-Button headlightWasherButton(new DigitalSensor(34));
+Button headlightWasherButton(new DigitalSensor(34, 20, HIGH, INPUT_PULLUP));
 TimedOutput headlightWasherRelay(new DigitalOutput(40, LOW));
 
 
