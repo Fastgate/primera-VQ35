@@ -1,7 +1,7 @@
 #include "Button.h"
 #include "Output.h"
 #include "Mmi.h"
-
+#include "Hvac.h"
 
   /////////////
  // HELPERS // 
@@ -158,26 +158,13 @@ int OTG_status = 0;
 int USB_HUB = 54;
 int USB_HUB_status = 0;
 
-// *************************** HVAC ***********************************************
 
+  //////////////////////
+ // HVAC DEFINITIONS // 
+//////////////////////
 
-int Temp = 14;                          // OPAMP für Temperaturreglung (HVAC 12)
-int Geblaese = 30;                      // OPAMP für die Gebläsestärke  (HVAC 13)
-int Luftklappe = 35;                    // OPAMP für die Lüftungsklappenstellung (HVAC 11)
-int RR_DEF_SW = 25;                     // Taster für Heckscheibenheizung "AN" (HVAC 17)
-int RR_DEF_LED = 32;                    // kontroll LED Heckscheibenheizung (HVAC 8)
-int UMLUFT_SW = 26;                     // Taster für Umluftklappe  (HVAC 16)
-int UMLUFT_FRE_LED = 31;                // kontroll LED Umluft (HVAC 5)
-int UMLUFT_REC_LED = 29;                // kontroll LED Umluft (HVAC 6)
-int KLIMA_SW = 48;                      // Taster für A/C  (HVAC 15)
-int KLIMA_LED = 47;                     // kontroll LED für Klima "AN" (HVAC 3)
+Hvac hvac;
 
-
-
-
-
-
- 
 // ******  Sketch ****** //  
 
 void setup() {
@@ -193,19 +180,6 @@ void setup() {
 
   pinMode(Android_OTG, OUTPUT);
   pinMode(USB_HUB, OUTPUT);
-
-  // ************************* HVAC **********************************
-
-  pinMode(Temp, OUTPUT);
-  pinMode(Geblaese, OUTPUT);
-  pinMode(Luftklappe, OUTPUT);
-  pinMode(RR_DEF_SW, INPUT);
-  pinMode(RR_DEF_LED, OUTPUT);
-  pinMode(UMLUFT_SW, INPUT);
-  pinMode(UMLUFT_FRE_LED, OUTPUT);
-  pinMode(UMLUFT_REC_LED, OUTPUT);
-  //pinMode(KLIMA_SW, INPUT);
-  pinMode(KLIMA_LED, OUTPUT);
 }
 
 void loop() {  
@@ -219,6 +193,8 @@ void loop() {
   updateSwc();
 
   FOB();                           // Funkfernbedienung
+
+  updateHvac();
 }
 
 
@@ -666,4 +642,12 @@ void FOB(){
   }
 }
 
+
+  ////////////////////
+ // HVAC FUNCTIONS // 
+////////////////////
+
+void updateHvac() {
+  hvac.update();
+}
 
