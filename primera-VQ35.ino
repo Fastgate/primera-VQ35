@@ -3,6 +3,7 @@
 #include "Mmi.h"
 #include "Hvac.h"
 
+
   /////////////
  // HELPERS // 
 /////////////
@@ -135,6 +136,7 @@ Button swcSeekDownButton(new AnalogSensor(A10, 15, 20), 0);
 int RevGear = 38;           // Rückwärtsgang  OK
 int RevGear_Stat = 0;
 
+
   ////////////////////////////
  // KEY REMOTE DEFINITIONS //
 ////////////////////////////
@@ -165,7 +167,10 @@ int USB_HUB_status = 0;
 
 Hvac hvac;
 
-// ******  Sketch ****** //  
+
+  //////////////////
+ // SKETCH SETUP // 
+//////////////////
 
 void setup() {
   Serial.begin(9600);                       // Serial Monitor
@@ -181,6 +186,11 @@ void setup() {
   pinMode(Android_OTG, OUTPUT);
   pinMode(USB_HUB, OUTPUT);
 }
+
+
+  /////////////////
+ // SKETCH LOOP // 
+/////////////////
 
 void loop() {  
   updateMmi();
@@ -570,6 +580,7 @@ void updateHeadlightWasher(){
     }
   }
 }
+
 
   //////////////////////////////
  // STEERING WHEEL FUNCTIONS //
