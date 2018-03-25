@@ -557,7 +557,7 @@ void FOB(){
   }
 
   if (zvLockButton.wasPressedTimesOrMore(1)) {
-    if(driverSensor.getState() || otherSensor.getState()  ||heckSensor.getState()){
+    if(driverDoorSensor.getState() || passengerDoorSensor.getState() || backDoorSensor.getState()){
       unlockRelay.set(HIGH, 100);
       Serial.println("TÜR OFFEN!!!");
     }
