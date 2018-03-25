@@ -147,8 +147,8 @@ int UNLOCK_RLY = 28;                        // OK
 int ZvUnlock = 23;                          // Entriegeln // gedrÃ¼ckt 5V // losgelassen 0V  OK
 Button zvLockButton(new DigitalSensor(ZvLock));
 Button zvUnlockButton(new DigitalSensor(ZvUnlock));
-TimedOutput lockRelay(new DigitalOutput(LOCK_RLY, LOW));
-TimedOutput unlockRelay(new DigitalOutput(UNLOCK_RLY, LOW));
+TimedOutput lockRelay(new DigitalOutput(LOCK_RLY, HIGH));
+TimedOutput unlockRelay(new DigitalOutput(UNLOCK_RLY, HIGH));
 int fob_did = 0;
 
 
