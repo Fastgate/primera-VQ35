@@ -141,17 +141,14 @@ int RevGear_Stat = 0;
  // KEY REMOTE DEFINITIONS //
 ////////////////////////////
 
-int ZvLock = 22;                            // Verriegeln // gedrÃ¼ckt 5V // losgelassen 0V getestet  OK
-int LOCK_RLY = 27;                          // OK
-int UNLOCK_RLY = 28;                        // OK
-int ZvUnlock = 23;                          // Entriegeln // gedrÃ¼ckt 5V // losgelassen 0V  OK
-Button zvLockButton(new DigitalSensor(ZvLock));
-Button zvUnlockButton(new DigitalSensor(ZvUnlock));
-TimedOutput lockRelay(new DigitalOutput(LOCK_RLY, HIGH));
-TimedOutput unlockRelay(new DigitalOutput(UNLOCK_RLY, HIGH));
-int fob_did = 0;
+Button zvLockButton(new DigitalSensor(22));
+Button zvUnlockButton(new DigitalSensor(23));
+TimedOutput lockRelay(new DigitalOutput(27, HIGH));
+TimedOutput unlockRelay(new DigitalOutput(28, HIGH));
 
-
+DigitalSensor driverDoorSensor(49, 20, LOW, INPUT_PULLUP);
+DigitalSensor passengerDoorSensor(51, 20, LOW, INPUT_PULLUP);
+DigitalSensor backDoorSensor(56, 20, LOW, INPUT_PULLUP);
 
 // **************************** ANDROID OTG **************************************
 
@@ -557,6 +554,16 @@ void FOB(){
   if (zvLockButton.wasPressedTimesOrMore(4)) {
      digitalWrite(Android_OTG, LOW);
      OTG_status = 0;
+  }
+
+  if (zvLockButton.wasPressedTimesOrMore(1)) {
+    if(driverSensor.getState() || otherSensor.getState()  ||heckSensor.getState()){
+      unlockRelay.set(HIGH, 100);
+      Serial.println("TÜR OFFEN!!!");
+    }
+    digitalWrite(Android_OTG, LOW);
+    OTG_status = 0;
+    Serial.println("AbschlieÃŸen");
   }
 }
 
