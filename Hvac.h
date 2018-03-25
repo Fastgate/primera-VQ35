@@ -16,10 +16,10 @@ public:
     this->airConditionButton->set(ButtonVoltage, 100);
   }
   void toggleRearHeater() {
-    this->airConditionButton->set(ButtonVoltage, 100);
+    this->rearHeaterButton->set(ButtonVoltage, 100);
   }
   void toggleRecirculation() {
-    this->airConditionButton->set(ButtonVoltage, 100);
+    this->recirculationButton->set(ButtonVoltage, 100);
   }
   void setTemperatureLevel(uint8_t level) {
     if (level > Hvac::DialStepsTemperature) {
