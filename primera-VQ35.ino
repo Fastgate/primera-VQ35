@@ -1,5 +1,7 @@
 #include "Button.h"
 #include "Output.h"
+#include "Binary.h"
+#include "Serial.h"
 #include "Mmi.h"
 #include "Hvac.h"
 
@@ -165,6 +167,15 @@ int USB_HUB_status = 0;
 Hvac hvac;
 
 
+  ////////////////////////
+ // SERIAL DEFINITIONS //
+////////////////////////
+
+SerialDataPacket<unsigned long> baudRateChange(0x65, 0x01);
+
+SerialReader serialReader(128);
+
+
   //////////////////
  // SKETCH SETUP // 
 //////////////////
@@ -202,6 +213,41 @@ void loop() {
   FOB();                           // Funkfernbedienung
 
   updateHvac();
+}
+
+
+  //////////////////
+ // SERIAL EVENT // 
+//////////////////
+
+void serialEvent() {
+  serialReader.read(Serial, readSerial);
+}
+
+void readSerial(uint8_t type, uint8_t id, BinaryBuffer *payloadBuffer) {
+  switch (type) {
+    case 0x61:
+      switch (id) {
+        case 0x72: { // set baud rate
+          BinaryData::LongResult result = payloadBuffer->readLong();
+          if (result.state == BinaryData::OK) {
+            baudRateChange.payload(htonl(result.data));
+            baudRateChange.serialize(Serial);
+            Serial.flush();
+            Serial.end();
+            Serial.begin(result.data);
+            while (Serial.available()) {
+              Serial.read();
+            }
+          }
+          break;
+        }
+      }
+      break;
+    case 0x63:
+      hvac.write(id, payloadBuffer);
+      break;
+  }
 }
 
 
