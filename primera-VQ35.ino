@@ -156,7 +156,7 @@ int fob_did = 0;
 
 // **************************** ANDROID OTG **************************************
 
-int Android_OTG = 5;
+int Android_OTG = 55;
 int OTG_status = 0;
 int USB_HUB = 54;
 int USB_HUB_status = 0;
