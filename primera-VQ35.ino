@@ -152,6 +152,8 @@ DigitalSensor driverDoorSensor(49, 20, LOW, INPUT_PULLUP);
 DigitalSensor passengerDoorSensor(51, 20, LOW, INPUT_PULLUP);
 DigitalSensor backDoorSensor(56, 20, LOW, INPUT_PULLUP);
 
+int fob_did = 0;
+
 // **************************** ANDROID OTG **************************************
 
 int Android_OTG = 5;
@@ -581,37 +583,54 @@ void FOB(){
   lockRelay.update();
   unlockRelay.update();
 
+  if(keySensor.getState())  {
+    digitalWrite(USB_HUB, HIGH);
+    Serial.println("HUB ON");
+  } 
+  else {
+    digitalWrite(USB_HUB, LOW);
+    Serial.println("HUB OFF");
+  }
+
   if (zvUnlockButton.wasPressedTimes(1)) {
+    if(fob_did == 1){
+      stopEngine();
+
+      fob_did = 0;
+    }
     Serial.println("AufschlieÃŸen.");
-    unlockRelay.set(LOW, 100);
     digitalWrite(Android_OTG, HIGH);
+    Serial.println("OTG AN!!!");
     OTG_status = 1;
   }
+  
   if (zvUnlockButton.wasPressedTimes(3)) {
     Serial.println("AufschlieÃŸen und Fenster auf.");
-    unlockRelay.set(LOW, 4000);
-  }
-  if (zvLockButton.wasPressedTimesOrMore(4)) {
-    // TODO: CODE FUER 15 MINUTEN MOTORSTART  
-  }
-  if (zvLockButton.wasPressedTimes(3)) {
-    Serial.println("AbschlieÃŸen und Fenster zu.");
-    lockRelay.set(LOW, 6000);
+    unlockRelay.set(HIGH, 4000);
   }
 
-  if (zvLockButton.wasPressedTimesOrMore(4)) {
-     digitalWrite(Android_OTG, LOW);
-     OTG_status = 0;
-  }
-
+  
   if (zvLockButton.wasPressedTimesOrMore(1)) {
-    if(driverDoorSensor.getState() || passengerDoorSensor.getState() || backDoorSensor.getState()){
+    if (driverDoorSensor.getState() || passengerDoorSensor.getState() || backDoorSensor.getState()) {
       unlockRelay.set(HIGH, 100);
       Serial.println("TÜR OFFEN!!!");
     }
     digitalWrite(Android_OTG, LOW);
     OTG_status = 0;
-    Serial.println("AbschlieÃŸen");
+    Serial.println("OTG AUS");
+  }
+  
+  if (zvLockButton.wasPressedTimes(3)) {
+    Serial.println("AbschlieÃŸen und Fenster zu.");
+    lockRelay.set(HIGH, 6000);
+  }
+ 
+  if (zvLockButton.wasPressedTimesOrMore(4)) {
+    if(fob_did == 0){
+      startEngine();
+      Serial.println("Remote_START");
+      fob_did = 1;
+    }
   }
 }
 
