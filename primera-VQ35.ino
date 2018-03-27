@@ -171,6 +171,8 @@ Hvac hvac;
  // SERIAL DEFINITIONS //
 ////////////////////////
 
+SerialPacket statusInitSuccess(0x61, 0x01);
+SerialPacket statusInitError(0x65, 0x01);
 SerialDataPacket<unsigned long> baudRateChange(0x65, 0x01);
 
 SerialReader serialReader(128);
@@ -181,8 +183,8 @@ SerialReader serialReader(128);
 //////////////////
 
 void setup() {
-  Serial.begin(9600);                       // Serial Monitor
-  Serial.println("Goodnight moon!");
+  Serial.begin(115200);
+  statusInitSuccess.serialize(Serial);
     
   // *********************** Primera STW Inputs ************************
   
