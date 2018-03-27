@@ -60,7 +60,7 @@ public:
   void toggleAutomatic() {
     this->setFanLevel(1);
   }
-  void setTemperature(uint8_t temperature) {
+  void setTemperature(float temperature) {
     if (temperature > TempMax) {
       temperature = TempMax;
     }
@@ -69,9 +69,9 @@ public:
     }
 
     // (DialMaximum - DialMinimum) / DialStepsTemperature * level + DialMaximum)
-    uint8_t level = (temperature - TempMin) / (TempMax - TempMin) * (DialMaximum - DialMinimum) + DialMinimum;
+    uint8_t level = (temperature - TempMin) / (float)(TempMax - TempMin) * (DialMaximum - DialMinimum) + DialMinimum;
     
-    this->climateControl->payload()->desiredTemperature = temperature;
+    this->climateControl->payload()->desiredTemperature = (uint8_t)(temperature * 2);
     this->temperatureDial->set(level);
   }
   void setFanLevel(uint8_t level) {   
@@ -83,7 +83,7 @@ public:
     }
 
     this->climateControl->payload()->fanLevel = level;
-    this->fanDial->set((DialMaximum - DialMinimum) / DialStepsFan * level + DialMaximum);
+    this->fanDial->set((DialMaximum - DialMinimum) / (float)DialStepsFan * level + DialMaximum);
   }
   void write(uint8_t buttonId, BinaryBuffer *payloadBuffer) {
     switch (buttonId) {
@@ -110,7 +110,7 @@ public:
         break;
       case 0x08: // temperature knob
         if (payloadBuffer->available() > 0) {
-          this->setTemperature(payloadBuffer->readByte().data);
+          this->setTemperature(payloadBuffer->readByte().data / (float)2);
         }
         break;
       case 0x09: // fan level
