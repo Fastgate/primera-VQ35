@@ -39,8 +39,9 @@ public:
     this->airConditionButton->update();
 
     if (millis() - this->lastUpdate > UpdateRate) {
-       this->climateControl->payload()->isRecirculation = this->recirculationLed->getState();
-       this->climateControl->payload()->isAcOn          = this->airConditionLed->getState();
+       this->climateControl->payload()->isRecirculation     = this->recirculationLed->getState();
+       this->climateControl->payload()->isAcOn              = this->airConditionLed->getState();
+       this->climateControl->payload()->isRearWindowHeating = this->rearHeaterLed->getState();
 
        this->climateControl->serialize(Serial);
 
