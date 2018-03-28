@@ -82,8 +82,16 @@ public:
     } 
     else {
       this->setFanLevel(1);
-      this->setAirduct(0);     
+      this->setAirduct(0);
       this->climateControl->payload()->isAuto = true;
+    }
+  }
+  void toggleDefrost() {
+    if (this->airductSetting == AirductModeCount - 1) {
+      this->setAirduct(this->manualAirductSetting);
+    }
+    else {
+      this->setAirduct(AirductModeCount - 1);
     }
   }
   void toggleAirduct() {
@@ -95,14 +103,14 @@ public:
     this->setAirduct(newMode);
   }
   void setAirduct(uint8_t mode) {
-    if (mode >= AirductModeCount - 1) {
+    if (mode > AirductModeCount - 1) {
       mode = AirductModeCount - 1;
     }
 
     this->airductSetting = mode;
     this->airductDial->set(AirductModes[this->airductSetting]);
 
-    if (this->airductSetting > 0) {
+    if (this->airductSetting != 0 && this->airductSetting != AirductModeCount - 1) {
       this->manualAirductSetting = this->airductSetting;
     }
 
@@ -182,7 +190,7 @@ public:
         this->toggleRecirculation();
         break;
       case 0x05: // windshield heating button
-        this->setAirduct(AirductModeCount - 1);
+        this->toggleDefrost();
         break;
       case 0x06: // rear window heating button
         this->toggleRearHeater();
