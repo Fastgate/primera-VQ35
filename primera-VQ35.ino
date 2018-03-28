@@ -401,8 +401,9 @@ void updateIgnition() {
   ignitionButton.update();
   crankSensor.update();
   ignitionOutputs.crank->update();
+  
+  neutralSensor.getState();
   bool isClutchPressed  = clutchSensor.getState();
-  bool isNeutralGear    = neutralSensor.getState();
   bool isBrakePressed   = brakeSensor.getState();
   bool isKeyInserted    = keySensor.getState();
 
