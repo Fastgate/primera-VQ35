@@ -32,6 +32,10 @@ public:
     this->climateControl->payload()->isRecirculation      = false;
     this->climateControl->payload()->fanLevel             = 0;
     this->climateControl->payload()->desiredTemperature   = 21 * 2;
+
+    this->setAirduct(1);
+    this->setFanLevel(10);
+    this->setTemperature(21);
   }
   void update() {
     this->rearHeaterButton->update();
@@ -58,7 +62,78 @@ public:
     this->recirculationButton->set(ButtonVoltage, ButtonPressDuration);
   }
   void toggleAutomatic() {
-    this->setFanLevel(1);
+    if (this->climateControl->payload()->isAuto) {
+      this->setFanLevel(this->manualFanSetting);
+      this->setAirduct(this->manualAirductSetting);
+      this->climateControl->payload()->isAuto = false;
+    } 
+    else {
+      this->setFanLevel(1);
+      this->setAirduct(0);
+      this->climateControl->payload()->isAuto = true;
+    }
+  }
+
+  void setAutomatic(boolean) {
+    if (this->climateControl->payload()->isAuto) {
+      this->setFanLevel(1);
+      this->setAirduct(5);      
+      this->climateControl->payload()->isAuto = false;
+    } 
+    else {
+      this->setFanLevel(1);
+      this->setAirduct(0);     
+      this->climateControl->payload()->isAuto = true;
+    }
+  }
+  void toggleAirduct() {
+    uint8_t newMode = this->airductSetting + 1;
+    if (newMode >= AirductModeCount - 1) {
+      newMode = 1;
+    }
+
+    this->setAirduct(newMode);
+  }
+  void setAirduct(uint8_t mode) {
+    if (mode >= AirductModeCount - 1) {
+      mode = AirductModeCount - 1;
+    }
+
+    this->airductSetting = mode;
+    this->airductDial->set(AirductModes[this->airductSetting]);
+
+    if (this->airductSetting > 0) {
+      this->manualAirductSetting = this->airductSetting;
+    }
+
+    this->climateControl->payload()->isAirductWindshield = false;
+    this->climateControl->payload()->isAirductFace       = false;
+    this->climateControl->payload()->isAirductFeet       = false;
+    this->climateControl->payload()->isWindshieldHeating = false;
+
+    switch (this->airductSetting) {
+      case 0:
+        // INTENTIONALLY LEFT BLANK
+        break;
+      case 1:
+        this->climateControl->payload()->isAirductFace       = true;
+        break;
+      case 2:
+        this->climateControl->payload()->isAirductFace       = true;
+        this->climateControl->payload()->isAirductFeet       = true;
+        break;
+      case 3:
+        this->climateControl->payload()->isAirductFeet       = true;
+        break;
+      case 4:
+        this->climateControl->payload()->isAirductWindshield = true;
+        this->climateControl->payload()->isAirductFeet       = true;
+        break;
+      case 5:
+        this->climateControl->payload()->isAirductWindshield = true;
+        this->climateControl->payload()->isWindshieldHeating = true;
+        break;
+    }
   }
   void setTemperature(float temperature) {
     if (temperature > TempMax) {
@@ -68,13 +143,16 @@ public:
       temperature = TempMin;
     }
 
-    // (DialMaximum - DialMinimum) / DialStepsTemperature * level + DialMaximum)
     uint8_t level = (temperature - TempMin) / (float)(TempMax - TempMin) * (DialMaximum - DialMinimum) + DialMinimum;
     
     this->climateControl->payload()->desiredTemperature = (uint8_t)(temperature * 2);
     this->temperatureDial->set(level);
   }
   void setFanLevel(uint8_t level) {   
+    // FAN: 4,6 (min) - 0,33 (max)
+    // OFF: 4,95
+    // AUTO: 4,77
+    
     if (level > DialStepsFan) {
       level = DialStepsFan;
     }
@@ -82,8 +160,12 @@ public:
       level = 0;
     }
 
-    this->climateControl->payload()->fanLevel = level;
-    this->fanDial->set((DialMaximum - DialMinimum) / (float)DialStepsFan * level + DialMaximum);
+    if (level != 1) {
+      this->manualFanSetting = level;
+    }
+
+    this->climateControl->payload()->fanLevel = level - 2;
+    this->fanDial->set(level / (float)FanMax * (DialMaximum - DialMinimum) + DialMinimum);
   }
   void write(uint8_t buttonId, BinaryBuffer *payloadBuffer) {
     switch (buttonId) {
@@ -100,13 +182,13 @@ public:
         this->toggleRecirculation();
         break;
       case 0x05: // windshield heating button
-        // set mode to defrosting (maximum)
+        this->setAirduct(AirductModeCount - 1);
         break;
       case 0x06: // rear window heating button
         this->toggleRearHeater();
         break;
       case 0x07: // mode button
-        // toggle between modes except auto and defrost
+        this->toggleAirduct();
         break;
       case 0x08: // temperature knob
         if (payloadBuffer->available() > 0) {
@@ -115,7 +197,7 @@ public:
         break;
       case 0x09: // fan level
         if (payloadBuffer->available() > 0) {
-          this->setFanLevel(payloadBuffer->readByte().data);
+          this->setFanLevel(payloadBuffer->readByte().data + 2);
         }
         break;
     }
@@ -123,7 +205,9 @@ public:
 private:
   SerialDataPacket<ClimateControl> *climateControl = new SerialDataPacket<ClimateControl>(0x73, 0x63);
   
-  uint8_t airDuctSetting = 0;
+  uint8_t airductSetting        = 0;
+  uint8_t manualAirductSetting  = 0;
+  uint8_t manualFanSetting      = 0;
 
   unsigned long lastUpdate = 0;
   /*
@@ -143,18 +227,25 @@ private:
   DigitalSensor *recirculationLed = new DigitalSensor(29, 20, LOW, INPUT_PULLUP);
   DigitalSensor *airConditionLed  = new DigitalSensor(47, 20, LOW, INPUT_PULLUP);
 
-  static const int DialMinimum   = 0.33 / 5 * 1024;
-  static const int DialMaximum   = 1024;
-  static const int ButtonVoltage = 3.89 / 5 * 1024;
+  static const unsigned int PinResolution = 255;
+  
+  static const int DialMinimum   = 0.33 / 5 * PinResolution;
+  static const int DialMaximum   = PinResolution;
+  static const int ButtonVoltage = 3.89 / 5 * PinResolution;
   
   static const unsigned int ButtonPressDuration = 300;
 
   static const uint8_t TempMin = 18;
   static const uint8_t TempMax = 32;
+  static const uint8_t FanMax  = 25;
 
   static const uint8_t DialStepsTemperature = 31;
   static const uint8_t DialStepsFan         = 27;
-  
+    
+  /* AUTO, FACE, FACE & FEET, FEET, WINDOW & FEET, DEFROST */
+  static const uint8_t AirductModeCount            = 6;
+  const int AirductModes[AirductModeCount]  = { (int)(5 / 5 * PinResolution), (int)(4.5 / 5 * PinResolution), (int)(3.5 / 5 * PinResolution), (int)(2.5 / 5 * PinResolution), (int)(1.5 / 5.0 * PinResolution), (int)(0.3 / 5 * PinResolution) };
+
   static const unsigned int UpdateRate = 250;
 };
 
