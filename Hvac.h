@@ -180,12 +180,18 @@ public:
         this->toggleRecirculation();
         break;
       case 0x05: // windshield heating button
+        if (this->climateControl->payload()->isAuto) {
+          this->setAutomatic(false);
+        }
         this->toggleDefrost();
         break;
       case 0x06: // rear window heating button
         this->toggleRearHeater();
         break;
       case 0x07: // mode button
+        if (this->climateControl->payload()->isAuto) {
+          this->setAutomatic(false);
+        }
         this->toggleAirduct();
         break;
       case 0x08: // temperature knob
@@ -195,6 +201,9 @@ public:
         break;
       case 0x09: // fan level
         if (payloadBuffer->available() > 0) {
+          if (this->climateControl->payload()->isAuto) {
+            this->setAutomatic(false);
+          }
           this->setFanLevel(payloadBuffer->readByte().data + 2);
         }
         break;
