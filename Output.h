@@ -12,7 +12,7 @@ class Output {
       this->set(this->normally);
     }
     boolean isActive() {
-      return !this->getState() != this->normally;
+      return this->getState() != this->normally;
     }
     virtual int getState() = 0;
     virtual void set(int value) = 0;
