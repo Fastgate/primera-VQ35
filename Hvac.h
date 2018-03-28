@@ -62,29 +62,19 @@ public:
     this->recirculationButton->set(ButtonVoltage, ButtonPressDuration);
   }
   void toggleAutomatic() {
-    if (this->climateControl->payload()->isAuto) {
-      this->setFanLevel(this->manualFanSetting);
-      this->setAirduct(this->manualAirductSetting);
-      this->climateControl->payload()->isAuto = false;
-    } 
-    else {
-      this->setFanLevel(1);
-      this->setAirduct(0);
-      this->climateControl->payload()->isAuto = true;
-    }
+    this->setAutomatic(!this->climateControl->payload()->isAuto);
   }
 
-  void setAutomatic(boolean) {
-    if (this->climateControl->payload()->isAuto) {
+  void setAutomatic(boolean state) {
+    if (state) {
       this->setFanLevel(1);
-      this->setAirduct(5);      
-      this->climateControl->payload()->isAuto = false;
+      this->setAirduct(0);      
     } 
     else {
-      this->setFanLevel(1);
-      this->setAirduct(0);
-      this->climateControl->payload()->isAuto = true;
+      this->setFanLevel(this->manualFanSetting);
+      this->setAirduct(this->manualAirductSetting);
     }
+    this->climateControl->payload()->isAuto = state;
   }
   void toggleDefrost() {
     if (this->airductSetting == AirductModeCount - 1) {
