@@ -136,14 +136,14 @@ public:
     }
   }
   void setTemperature(float temperature) {
-    if (temperature > TempMax) {
-      temperature = TempMax;
+    if (temperature > TemperatureMaxLevel) {
+      temperature = TemperatureMaxLevel;
     }
-    if (temperature < TempMin) {
-      temperature = TempMin;
+    if (temperature < TemperatureMinLevel) {
+      temperature = TemperatureMinLevel;
     }
 
-    uint8_t level = (temperature - TempMin) / (float)(TempMax - TempMin) * (DialMaximum - DialMinimum) + DialMinimum;
+    uint8_t level = (TemperatureMaxVoltage - TemperatureMinVoltage) - ((temperature - TemperatureMinLevel) / (float)(TemperatureMaxLevel - TemperatureMinLevel) * (TemperatureMaxVoltage - TemperatureMinVoltage)) + TemperatureMinVoltage;
     
     this->climateControl->payload()->desiredTemperature = (uint8_t)(temperature * 2);
     this->temperatureDial->set(level);
@@ -244,20 +244,16 @@ private:
   DigitalSensor *freshAirLed      = new DigitalSensor(31, 20, LOW, INPUT_PULLUP);
   DigitalSensor *recirculationLed = new DigitalSensor(29, 20, LOW, INPUT_PULLUP);
   DigitalSensor *airConditionLed  = new DigitalSensor(47, 20, LOW, INPUT_PULLUP);
-
-  static const unsigned int PinResolution = 255;
-  
-  static const int DialMinimum   = 0.33 / 5 * PinResolution;
-  static const int DialMaximum   = PinResolution;
-  static const int ButtonVoltage = v(3.89);
-  
+ 
+  static const int ButtonVoltage                = v(3.89);
   static const unsigned int ButtonPressDuration = 300;
 
-  static const uint8_t TempMin = 18;
-  static const uint8_t TempMax = 32;
-
+  /* 18 - 32 C */
   static const uint8_t DialStepsTemperature = 31;
-  
+  static const uint8_t TemperatureMinLevel  = 18;
+  static const uint8_t TemperatureMaxLevel  = 32;
+  static const int TemperatureMinVoltage    = v(0.33);
+  static const int TemperatureMaxVoltage    = v(5);
 
   /* OFF, AUTO, RANGE */
   static const uint8_t DialStepsFan = 27;
