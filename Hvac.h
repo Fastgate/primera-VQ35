@@ -79,11 +79,14 @@ public:
     this->climateControl->payload()->isAuto = state;
   }
   void toggleDefrost() {
-    if (this->airductSetting == AirductModeCount - 1) {
-      this->setAirduct(this->manualAirductSetting);
+    setDefrost(this->airductSetting != AirductModeCount - 1);
+  }
+  void setDefrost(boolean state) {
+    if (state) {
+      this->setAirduct(AirductModeCount - 1);      
     }
     else {
-      this->setAirduct(AirductModeCount - 1);
+      this->setAirduct(this->manualAirductSetting);
     }
   }
   void toggleAirduct() {
