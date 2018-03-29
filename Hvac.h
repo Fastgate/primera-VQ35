@@ -5,6 +5,8 @@
 #include "Output.h"
 #include "bitfield.h"
 
+#define v(X)  ((int)((X) / 5 * 255))
+
 union ClimateControl {
   unsigned char data[3];
   BitFieldMember<0, 1> isAcOn;
@@ -146,28 +148,37 @@ public:
     this->climateControl->payload()->desiredTemperature = (uint8_t)(temperature * 2);
     this->temperatureDial->set(level);
   }
-  void setFanLevel(uint8_t level) {   
-    // FAN: 4,6 (min) - 0,33 (max)
-    // OFF: 4,95
-    // AUTO: 4,77
-    
-    if (level > DialStepsFan) {
-      level = DialStepsFan;
+  void setFanLevel(uint8_t value) {      
+    if (value > DialStepsFan) {
+      value = DialStepsFan;
     }
-    if (level < 0) {
-      level = 0;
+    if (value < 0) {
+      value = 0;
     }
 
-    if (level != 1) {
-      this->manualFanSetting = level;
+    int voltage = FanModes[0];
+
+    if (value > 1) {
+      voltage = FanModes[2];
+      voltage = voltage - (int)((voltage - FanMinVoltage) / (float)FanMaxLevel) * (value - 1);
+    }
+    else {
+      voltage = FanModes[value];
     }
 
-    this->climateControl->payload()->fanLevel = level - 2;
-    this->fanDial->set(level / (float)FanMax * (DialMaximum - DialMinimum) + DialMinimum);
+    if (value != 1) {
+      this->manualFanSetting = value;
+    }
+
+    this->climateControl->payload()->fanLevel = value == 0 ? 0 : (value - 1 >= 1 ? value - 1 : 1);
+    this->fanDial->set(voltage);
   }
   void write(uint8_t buttonId, BinaryBuffer *payloadBuffer) {
     switch (buttonId) {
       case 0x01: // OFF BUTTON
+        if (this->climateControl->payload()->isAuto) {
+          this->setAutomatic(false);
+        }
         this->setFanLevel(0);
         break;
       case 0x02: // ac button
@@ -204,7 +215,7 @@ public:
           if (this->climateControl->payload()->isAuto) {
             this->setAutomatic(false);
           }
-          this->setFanLevel(payloadBuffer->readByte().data + 2);
+          this->setFanLevel(payloadBuffer->readByte().data + 1);
         }
         break;
     }
@@ -238,20 +249,26 @@ private:
   
   static const int DialMinimum   = 0.33 / 5 * PinResolution;
   static const int DialMaximum   = PinResolution;
-  static const int ButtonVoltage = 3.89 / 5 * PinResolution;
+  static const int ButtonVoltage = v(3.89);
   
   static const unsigned int ButtonPressDuration = 300;
 
   static const uint8_t TempMin = 18;
   static const uint8_t TempMax = 32;
-  static const uint8_t FanMax  = 25;
 
   static const uint8_t DialStepsTemperature = 31;
-  static const uint8_t DialStepsFan         = 27;
+  
+
+  /* OFF, AUTO, RANGE */
+  static const uint8_t DialStepsFan = 27;
+  static const uint8_t FanMaxLevel  = 25;
+  static const int FanMinVoltage    = v(0.33);
+  static const uint8_t FanModeCount = 3;
+  const int FanModes[FanModeCount]  = { v(5), v(4.75), v(4.6) };
     
   /* AUTO, FACE, FACE & FEET, FEET, WINDOW & FEET, DEFROST */
-  static const uint8_t AirductModeCount            = 6;
-  const int AirductModes[AirductModeCount]  = { (int)(5 / 5 * PinResolution), (int)(4.5 / 5 * PinResolution), (int)(3.5 / 5 * PinResolution), (int)(2.5 / 5 * PinResolution), (int)(1.5 / 5.0 * PinResolution), (int)(0.3 / 5 * PinResolution) };
+  static const uint8_t AirductModeCount     = 6;
+  const int AirductModes[AirductModeCount]  = { v(5), v(4.5), v(3.5), v(2.5), v(1.5), v(0.3) };
 
   static const unsigned int UpdateRate = 250;
 };
