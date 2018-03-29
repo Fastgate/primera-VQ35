@@ -5,7 +5,7 @@
 #include "Output.h"
 #include "bitfield.h"
 
-#define v(X)  ((int)((X) / 5 * 255))
+#define v(X)  ((int)((X) / 5.0 * 255))
 
 union ClimateControl {
   unsigned char data[3];
@@ -163,7 +163,7 @@ public:
 
     if (value > 1) {
       voltage = FanModes[2];
-      voltage = voltage - (int)((voltage - FanMinVoltage) / (float)FanMaxLevel) * (value - 1);
+      voltage = voltage - (int)((voltage - FanMinVoltage) / (float)(FanMaxLevel - 1)) * (value - 2);
     }
     else {
       voltage = FanModes[value];
