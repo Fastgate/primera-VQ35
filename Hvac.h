@@ -5,7 +5,7 @@
 #include "Output.h"
 #include "bitfield.h"
 
-#define v(X)  ((int)((X) / 5.0 * 255))
+#define v(X)  ((int)((X) / 5 * 255))
 
 union ClimateControl {
   unsigned char data[3];
@@ -255,19 +255,19 @@ private:
   static const uint8_t DialStepsTemperature = 31;
   static const uint8_t TemperatureMinLevel  = 18;
   static const uint8_t TemperatureMaxLevel  = 32;
-  static const int TemperatureMinVoltage    = v(0.33);
-  static const int TemperatureMaxVoltage    = v(5);
+  static const int TemperatureMinVoltage    = v(0.25);
+  static const int TemperatureMaxVoltage    = v(4.94);
 
   /* OFF, AUTO, RANGE */
   static const uint8_t DialStepsFan = 27;
   static const uint8_t FanMaxLevel  = 25;
-  static const int FanMinVoltage    = v(0.33);
+  static const int FanMinVoltage    = v(0.24);
   static const uint8_t FanModeCount = 3;
-  const int FanModes[FanModeCount]  = { v(5), v(4.75), v(4.6) };
+  const int FanModes[FanModeCount]  = { v(4.95), v(4.77), v(4.58) };
     
   /* AUTO, FACE, FACE & FEET, FEET, WINDOW & FEET, DEFROST */
   static const uint8_t AirductModeCount     = 6;
-  const int AirductModes[AirductModeCount]  = { v(5), v(4.5), v(3.5), v(2.5), v(1.5), v(0.3) };
+  const int AirductModes[AirductModeCount]  = { v(4.94), v(4.41), v(3.37), v(2.33), v(1.29), v(0.25) };
 
   static const unsigned int UpdateRate = 250;
 };
