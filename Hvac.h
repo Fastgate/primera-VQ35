@@ -5,7 +5,7 @@
 #include "Output.h"
 #include "bitfield.h"
 
-#define v(X)  ((int)((X) / 5 * 255))
+#define v2a(X)  ((int)roundf((X) / 5 * 256 - 1))
 
 union ClimateControl {
   unsigned char data[3];
@@ -55,13 +55,13 @@ public:
     }
   }
   void toggleAirCondition() {
-    this->airConditionButton->set(ButtonVoltage, ButtonPressDuration);
+    this->airConditionButton->set(v2a(ButtonVoltage), ButtonPressDuration);
   }
   void toggleRearHeater() {
-    this->rearHeaterButton->set(ButtonVoltage, ButtonPressDuration);
+    this->rearHeaterButton->set(v2a(ButtonVoltage), ButtonPressDuration);
   }
   void toggleRecirculation() {
-    this->recirculationButton->set(ButtonVoltage, ButtonPressDuration);
+    this->recirculationButton->set(v2a(ButtonVoltage), ButtonPressDuration);
   }
   void toggleAutomatic() {
     this->setAutomatic(!this->climateControl->payload()->isAuto);
@@ -103,7 +103,7 @@ public:
     }
 
     this->airductSetting = mode;
-    this->airductDial->set(AirductModes[this->airductSetting]);
+    this->airductDial->set(v2a(AirductModes[this->airductSetting]));
 
     if (this->airductSetting != 0 && this->airductSetting != AirductModeCount - 1) {
       this->manualAirductSetting = this->airductSetting;
@@ -146,10 +146,10 @@ public:
       temperature = TemperatureMinLevel;
     }
 
-    uint8_t level = (TemperatureMaxVoltage - TemperatureMinVoltage) - ((temperature - TemperatureMinLevel) / (float)(TemperatureMaxLevel - TemperatureMinLevel) * (TemperatureMaxVoltage - TemperatureMinVoltage)) + TemperatureMinVoltage;
+    float voltage = (TemperatureMaxVoltage - TemperatureMinVoltage) - ((temperature - TemperatureMinLevel) / (float)(TemperatureMaxLevel - TemperatureMinLevel) * (TemperatureMaxVoltage - TemperatureMinVoltage)) + TemperatureMinVoltage;
     
     this->climateControl->payload()->desiredTemperature = (uint8_t)(temperature * 2);
-    this->temperatureDial->set(level);
+    this->temperatureDial->set(v2a(voltage));
   }
   void setFanLevel(uint8_t value) {      
     if (value > DialStepsFan) {
@@ -159,11 +159,11 @@ public:
       value = 0;
     }
 
-    int voltage = FanModes[0];
+    float voltage = FanModes[0];
 
     if (value > 1) {
       voltage = FanModes[2];
-      voltage = voltage - (int)((voltage - FanMinVoltage) / (float)(FanMaxLevel - 1)) * (value - 2);
+      voltage = voltage - (voltage - FanMinVoltage) / (float)(FanMaxLevel - 1) * (value - 2);
     }
     else {
       voltage = FanModes[value];
@@ -174,7 +174,7 @@ public:
     }
 
     this->climateControl->payload()->fanLevel = value == 0 ? 0 : (value - 1 >= 1 ? value - 1 : 1);
-    this->fanDial->set(voltage);
+    this->fanDial->set(v2a(voltage));
   }
   void write(uint8_t buttonId, BinaryBuffer *payloadBuffer) {
     switch (buttonId) {
@@ -248,28 +248,28 @@ private:
   DigitalSensor *recirculationLed = new DigitalSensor(29, 20, LOW, INPUT_PULLUP);
   DigitalSensor *airConditionLed  = new DigitalSensor(47, 20, LOW, INPUT_PULLUP);
  
-  static const int ButtonVoltage                = v(3.89);
-  static const unsigned int ButtonPressDuration = 300;
+  const float ButtonVoltage              = 3.89;
+  const unsigned int ButtonPressDuration = 300;
 
   /* 18 - 32 C */
-  static const uint8_t DialStepsTemperature = 31;
-  static const uint8_t TemperatureMinLevel  = 18;
-  static const uint8_t TemperatureMaxLevel  = 32;
-  static const int TemperatureMinVoltage    = v(0.25);
-  static const int TemperatureMaxVoltage    = v(4.94);
+  const uint8_t DialStepsTemperature = 31;
+  const uint8_t TemperatureMinLevel  = 18;
+  const uint8_t TemperatureMaxLevel  = 32;
+  const float TemperatureMinVoltage  = 0.25;
+  const float TemperatureMaxVoltage  = 4.94;
 
   /* OFF, AUTO, RANGE */
-  static const uint8_t DialStepsFan = 27;
-  static const uint8_t FanMaxLevel  = 25;
-  static const int FanMinVoltage    = v(0.24);
-  static const uint8_t FanModeCount = 3;
-  const int FanModes[FanModeCount]  = { v(4.95), v(4.77), v(4.58) };
+  static const uint8_t DialStepsFan   = 27;
+  static const uint8_t FanMaxLevel    = 25;
+  const float FanMinVoltage           = 0.24;
+  static const uint8_t FanModeCount   = 3;
+  const float FanModes[FanModeCount]  = { 4.95, 4.77, 4.58 };
     
   /* AUTO, FACE, FACE & FEET, FEET, WINDOW & FEET, DEFROST */
   static const uint8_t AirductModeCount     = 6;
-  const int AirductModes[AirductModeCount]  = { v(4.94), v(4.41), v(3.37), v(2.33), v(1.29), v(0.25) };
+  const float AirductModes[AirductModeCount]  = { 4.94, 4.41, 3.37, 2.33, 1.29, 0.25 };
 
-  static const unsigned int UpdateRate = 250;
+  const unsigned int UpdateRate = 250;
 };
 
 #endif
