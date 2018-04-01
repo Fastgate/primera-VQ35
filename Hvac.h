@@ -241,7 +241,7 @@ private:
   AnalogOutput *airductDial         = new AnalogOutput(35, LOW);
   TimedOutput *rearHeaterButton     = new TimedOutput(new AnalogOutput(25));
   TimedOutput *recirculationButton  = new TimedOutput(new AnalogOutput(26));
-  TimedOutput *airConditionButton   = new TimedOutput(new AnalogOutput(48));
+  TimedOutput *airConditionButton   = new TimedOutput(new AnalogOutput(33));
 
   DigitalSensor *rearHeaterLed    = new DigitalSensor(32, 20, LOW, INPUT_PULLUP);
   DigitalSensor *freshAirLed      = new DigitalSensor(31, 20, LOW, INPUT_PULLUP);
