@@ -55,13 +55,13 @@ public:
     }
   }
   void toggleAirCondition() {
-    this->airConditionButton->set(v2a(ButtonVoltage), ButtonPressDuration);
+    this->airConditionButton->set(HIGH, ButtonPressDuration);
   }
   void toggleRearHeater() {
-    this->rearHeaterButton->set(v2a(ButtonVoltage), ButtonPressDuration);
+    this->rearHeaterButton->set(HIGH, ButtonPressDuration);
   }
   void toggleRecirculation() {
-    this->recirculationButton->set(v2a(ButtonVoltage), ButtonPressDuration);
+    this->recirculationButton->set(HIGH, ButtonPressDuration);
   }
   void toggleAutomatic() {
     this->setAutomatic(!this->climateControl->payload()->isAuto);
@@ -239,16 +239,15 @@ private:
   AnalogOutput *temperatureDial     = new AnalogOutput(14, LOW);
   AnalogOutput *fanDial             = new AnalogOutput(30, LOW);
   AnalogOutput *airductDial         = new AnalogOutput(35, LOW);
-  TimedOutput *rearHeaterButton     = new TimedOutput(new AnalogOutput(25));
-  TimedOutput *recirculationButton  = new TimedOutput(new AnalogOutput(26));
-  TimedOutput *airConditionButton   = new TimedOutput(new AnalogOutput(33));
+  TimedOutput *rearHeaterButton     = new TimedOutput(new DigitalOutput(25));
+  TimedOutput *recirculationButton  = new TimedOutput(new DigitalOutput(26));
+  TimedOutput *airConditionButton   = new TimedOutput(new DigitalOutput(33));
 
   DigitalSensor *rearHeaterLed    = new DigitalSensor(32, 20, LOW, INPUT_PULLUP);
   DigitalSensor *freshAirLed      = new DigitalSensor(31, 20, LOW, INPUT_PULLUP);
   DigitalSensor *recirculationLed = new DigitalSensor(29, 20, LOW, INPUT_PULLUP);
   DigitalSensor *airConditionLed  = new DigitalSensor(47, 20, LOW, INPUT_PULLUP);
  
-  const float ButtonVoltage              = 3.89;
   const unsigned int ButtonPressDuration = 300;
 
   /* 18 - 32 C */
