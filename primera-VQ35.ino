@@ -1,3 +1,4 @@
+#include <SPI.h>
 #include "Button.h"
 #include "Output.h"
 #include "Binary.h"
@@ -185,6 +186,8 @@ SerialReader serialReader(128);
 //////////////////
 
 void setup() {
+  SPI.begin();
+  
   Serial.begin(115200);
   statusInitSuccess.serialize(Serial);
     

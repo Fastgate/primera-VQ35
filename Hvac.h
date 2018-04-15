@@ -5,8 +5,6 @@
 #include "Output.h"
 #include "bitfield.h"
 
-#define v2a(X)  ((int)roundf((X) / 5 * 256 - 1))
-
 union ClimateControl {
   unsigned char data[3];
   BitFieldMember<0, 1> isAcOn;
@@ -103,7 +101,7 @@ public:
     }
 
     this->airductSetting = mode;
-    this->airductDial->set(v2a(AirductModes[this->airductSetting]));
+    setDial(this->airductSelect, AirductModes[this->airductSetting]);
 
     if (this->airductSetting != 0 && this->airductSetting != AirductModeCount - 1) {
       this->manualAirductSetting = this->airductSetting;
@@ -147,9 +145,9 @@ public:
     }
 
     float voltage = (TemperatureMaxVoltage - TemperatureMinVoltage) - ((temperature - TemperatureMinLevel) / (float)(TemperatureMaxLevel - TemperatureMinLevel) * (TemperatureMaxVoltage - TemperatureMinVoltage)) + TemperatureMinVoltage;
-    
+   
     this->climateControl->payload()->desiredTemperature = (uint8_t)(temperature * 2);
-    this->temperatureDial->set(v2a(voltage));
+    setDial(this->temperatureSelect, voltage);
   }
   void setFanLevel(uint8_t value) {      
     if (value > DialStepsFan) {
@@ -174,7 +172,7 @@ public:
     }
 
     this->climateControl->payload()->fanLevel = value == 0 ? 0 : (value - 1 >= 1 ? value - 1 : 1);
-    this->fanDial->set(v2a(voltage));
+    setDial(this->fanSelect, voltage);
   }
   void write(uint8_t buttonId, BinaryBuffer *payloadBuffer) {
     switch (buttonId) {
@@ -224,6 +222,13 @@ public:
     }
   }
 private:
+  void setDial(DigitalOutput *select, float voltage) {
+    select->activate();
+    SPI.transfer(0);
+    SPI.transfer((int)roundf(voltage / 5.18 * 256 - 1));
+    select->deactivate();
+  }
+
   SerialDataPacket<ClimateControl> *climateControl = new SerialDataPacket<ClimateControl>(0x73, 0x63);
   
   uint8_t airductSetting        = 0;
@@ -236,13 +241,13 @@ private:
    * initialized in constructor deleted in destructor.
    * Since this class will only be created once, we do not care. :-P
    */
-  AnalogOutput *temperatureDial     = new AnalogOutput(14, LOW);
-  AnalogOutput *fanDial             = new AnalogOutput(30, LOW);
-  AnalogOutput *airductDial         = new AnalogOutput(35, LOW);
+  DigitalOutput *airductSelect      = new DigitalOutput(35, LOW);
+  DigitalOutput *temperatureSelect  = new DigitalOutput(30, LOW);
+  DigitalOutput *fanSelect          = new DigitalOutput(10, LOW);
   TimedOutput *rearHeaterButton     = new TimedOutput(new DigitalOutput(25));
   TimedOutput *recirculationButton  = new TimedOutput(new DigitalOutput(26));
   TimedOutput *airConditionButton   = new TimedOutput(new DigitalOutput(33));
-
+ 
   DigitalSensor *rearHeaterLed    = new DigitalSensor(32, 20, LOW, INPUT_PULLUP);
   DigitalSensor *freshAirLed      = new DigitalSensor(31, 20, LOW, INPUT_PULLUP);
   DigitalSensor *recirculationLed = new DigitalSensor(29, 20, LOW, INPUT_PULLUP);
@@ -262,11 +267,11 @@ private:
   static const uint8_t FanMaxLevel    = 25;
   const float FanMinVoltage           = 0.24;
   static const uint8_t FanModeCount   = 3;
-  const float FanModes[FanModeCount]  = { 4.95, 4.77, 4.58 };
+  const float FanModes[FanModeCount]  = { 4.95, 4.77, 4.66 };
     
   /* AUTO, FACE, FACE & FEET, FEET, WINDOW & FEET, DEFROST */
   static const uint8_t AirductModeCount     = 6;
-  const float AirductModes[AirductModeCount]  = { 4.94, 4.41, 3.37, 2.33, 1.29, 0.25 };
+  const float AirductModes[AirductModeCount]  = { 4.94, 4.34, 2.92, 2.48, 1.38, 0.25 };
 
   const unsigned int UpdateRate = 250;
 };
