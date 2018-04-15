@@ -33,6 +33,8 @@ public:
     this->climateControl->payload()->fanLevel             = 0;
     this->climateControl->payload()->desiredTemperature   = 21 * 2;
 
+    SPI.begin();
+
     this->setAirduct(1);
     this->setFanLevel(10);
     this->setTemperature(21);
@@ -101,7 +103,7 @@ public:
     }
 
     this->airductSetting = mode;
-    setDial(this->airductSelect, AirductModes[this->airductSetting]);
+    this->setDial(this->airductSelect, AirductModes[this->airductSetting]);
 
     if (this->airductSetting != 0 && this->airductSetting != AirductModeCount - 1) {
       this->manualAirductSetting = this->airductSetting;
@@ -147,7 +149,7 @@ public:
     float voltage = (TemperatureMaxVoltage - TemperatureMinVoltage) - ((temperature - TemperatureMinLevel) / (float)(TemperatureMaxLevel - TemperatureMinLevel) * (TemperatureMaxVoltage - TemperatureMinVoltage)) + TemperatureMinVoltage;
    
     this->climateControl->payload()->desiredTemperature = (uint8_t)(temperature * 2);
-    setDial(this->temperatureSelect, voltage);
+    this->setDial(this->temperatureSelect, voltage);
   }
   void setFanLevel(uint8_t value) {      
     if (value > DialStepsFan) {
@@ -172,7 +174,7 @@ public:
     }
 
     this->climateControl->payload()->fanLevel = value == 0 ? 0 : (value - 1 >= 1 ? value - 1 : 1);
-    setDial(this->fanSelect, voltage);
+    this->setDial(this->fanSelect, voltage);
   }
   void write(uint8_t buttonId, BinaryBuffer *payloadBuffer) {
     switch (buttonId) {

@@ -186,8 +186,6 @@ SerialReader serialReader(128);
 //////////////////
 
 void setup() {
-  SPI.begin();
-  
   Serial.begin(115200);
   statusInitSuccess.serialize(Serial);
     
