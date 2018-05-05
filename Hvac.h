@@ -243,12 +243,12 @@ private:
    * initialized in constructor deleted in destructor.
    * Since this class will only be created once, we do not care. :-P
    */
-  DigitalOutput *airductSelect      = new DigitalOutput(35, LOW);
-  DigitalOutput *temperatureSelect  = new DigitalOutput(30, LOW);
-  DigitalOutput *fanSelect          = new DigitalOutput(10, LOW);
-  TimedOutput *rearHeaterButton     = new TimedOutput(new DigitalOutput(25));
+  DigitalOutput *airductSelect      = new DigitalOutput(10, LOW);
+  DigitalOutput *temperatureSelect  = new DigitalOutput(14, LOW);
+  DigitalOutput *fanSelect          = new DigitalOutput(30, LOW);
+  TimedOutput *rearHeaterButton     = new TimedOutput(new DigitalOutput(33));
   TimedOutput *recirculationButton  = new TimedOutput(new DigitalOutput(26));
-  TimedOutput *airConditionButton   = new TimedOutput(new DigitalOutput(33));
+  TimedOutput *airConditionButton   = new TimedOutput(new DigitalOutput(25));
  
   DigitalSensor *rearHeaterLed    = new DigitalSensor(32, 20, LOW, INPUT_PULLUP);
   DigitalSensor *freshAirLed      = new DigitalSensor(31, 20, LOW, INPUT_PULLUP);
