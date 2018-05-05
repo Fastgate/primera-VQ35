@@ -31,6 +31,14 @@ class DigitalOutput : public Output {
     int getState() {
       return digitalRead(this->pinNumber);
     }
+    void toggle(boolean state) {
+      if (state && !this->isActive()) {
+        this->activate();
+      } 
+      else if (!state && this->isActive()) {
+        this->deactivate();
+      }
+    }
     void set(int value) {
       digitalWrite(this->pinNumber, value);
     }
