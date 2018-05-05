@@ -106,11 +106,11 @@ struct {
 } ignitionLights;
 
 struct {
-  DigitalOutput *acc  = new DigitalOutput(42, LOW);
-  DigitalOutput *on   = new DigitalOutput(44, LOW);
-  DigitalOutput *key  = new DigitalOutput(43, LOW);
-  DigitalOutput *nats = new DigitalOutput(57, LOW);
-  TimedOutput *crank  = new TimedOutput(new DigitalOutput(41, LOW));
+  DigitalOutput *acc  = new DigitalOutput(42);
+  DigitalOutput *on   = new DigitalOutput(44);
+  DigitalOutput *key  = new DigitalOutput(43);
+  DigitalOutput *nats = new DigitalOutput(57);
+  TimedOutput *crank  = new TimedOutput(new DigitalOutput(41));
 } ignitionOutputs;
 
 
@@ -119,7 +119,7 @@ struct {
 //////////////////////////////////
 
 Button headlightWasherButton(new DigitalSensor(34, 20, HIGH, INPUT_PULLUP));
-TimedOutput headlightWasherRelay(new DigitalOutput(40, LOW));
+TimedOutput headlightWasherRelay(new DigitalOutput(40));
 
 
   /////////////////////////////
@@ -409,7 +409,7 @@ void updateIgnition() {
   bool isKeyInserted    = keySensor.getState();
 
   // key signal
-  ignitionOutputs.key->set(!(isKeyInserted || ignition.state >= IGNITION_ON));
+  ignitionOutputs.key->toggle(isKeyInserted || ignition.state >= IGNITION_ON);
 
   // ignition button
   if (!ignition.engine) {  
@@ -461,7 +461,7 @@ void updateIgnition() {
 
   // reenable ACC after crank has stopped
   if (crankSensor.wasPressedTimes(1)) {
-    ignitionOutputs.acc->set(!(ignition.state >= IGNITION_ACC));
+    ignitionOutputs.acc->toggle(ignition.state >= IGNITION_ACC);
   }
 }
 
@@ -491,13 +491,13 @@ void setIgnition(uint8_t newState) {
   if (ignition.state != newState) {
     ignition.state = newState;
 
-    ignitionOutputs.acc->set(!(ignition.state >= IGNITION_ACC && ignitionOutputs.crank->getState()));
-    ignitionLights.acc->set(!(ignition.state == IGNITION_ACC));
-    ignitionLights.nats->set(!(ignition.state >= IGNITION_ACC));
+    ignitionOutputs.acc->toggle(ignition.state >= IGNITION_ACC && ignitionOutputs.crank->getState());
+    ignitionLights.acc->toggle(ignition.state == IGNITION_ACC);
+    ignitionLights.nats->toggle(ignition.state >= IGNITION_ACC);
 
-    ignitionOutputs.nats->set(!(ignition.state >= IGNITION_ON));
-    ignitionOutputs.on->set(!(ignition.state >= IGNITION_ON));
-    ignitionLights.on->set(!(ignition.state >= IGNITION_ON));
+    ignitionOutputs.nats->toggle(ignition.state >= IGNITION_ON);
+    ignitionOutputs.on->toggle(ignition.state >= IGNITION_ON);
+    ignitionLights.on->toggle(ignition.state >= IGNITION_ON);
     Serial.printf("Ignition: %d.\r\n", ignition.state);
   }
 }
@@ -514,8 +514,8 @@ void startEngine() {
   if (!ignition.engine && (clutchSensor.getState() || neutralSensor.getState())) {
     setIgnition(IGNITION_ON);
     ignition.engine = true;
-    ignitionOutputs.acc->set(HIGH);
-    ignitionOutputs.crank->set(LOW, CRANK_DURATION);
+    ignitionOutputs.acc->activate();
+    ignitionOutputs.crank->set(HIGH, CRANK_DURATION);
     Serial.println("Start engine!");
   }
 }
@@ -532,7 +532,7 @@ void updateHeadlightWasher(){
   if (illuminationSensor.getState()) {
     if (headlightWasherButton.wasPressedTimes(1)) {
       Serial.println("ScheinwerferWaschanlage aktiviert");
-      headlightWasherRelay.set(LOW, 6000);
+      headlightWasherRelay.set(HIGH, 6000);
     }
   }
 }
