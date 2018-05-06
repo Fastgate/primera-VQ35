@@ -84,7 +84,7 @@ bool illuminationState = false;
 #define ENGINE_BUTTON_STOP_DURATION 3000
 
 Button ignitionButton(new DigitalSensor(39, 20, HIGH, INPUT), 0);
-Button crankSensor(new DigitalSensor(41, 20, LOW, OUTPUT));
+Button crankSensor(new DigitalSensor(41, 20, HIGH, OUTPUT));
 DigitalSensor clutchSensor(16, 20, HIGH, INPUT);
 DigitalSensor brakeSensor(17, 20, HIGH, INPUT);
 DigitalSensor neutralSensor(36, 20, HIGH, INPUT);
@@ -491,7 +491,7 @@ void setIgnition(uint8_t newState) {
   if (ignition.state != newState) {
     ignition.state = newState;
 
-    ignitionOutputs.acc->toggle(ignition.state >= IGNITION_ACC && ignitionOutputs.crank->getState());
+    ignitionOutputs.acc->toggle(ignition.state >= IGNITION_ACC && !ignitionOutputs.crank->isActive());
     ignitionLights.acc->toggle(ignition.state == IGNITION_ACC);
     ignitionLights.nats->toggle(ignition.state >= IGNITION_ACC);
 
@@ -514,7 +514,7 @@ void startEngine() {
   if (!ignition.engine && (clutchSensor.getState() || neutralSensor.getState())) {
     setIgnition(IGNITION_ON);
     ignition.engine = true;
-    ignitionOutputs.acc->activate();
+    ignitionOutputs.acc->deactivate();
     ignitionOutputs.crank->set(HIGH, CRANK_DURATION);
     Serial.println("Start engine!");
   }

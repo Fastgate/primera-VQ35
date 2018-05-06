@@ -124,6 +124,9 @@ class TimedOutput {
       this->switchDuration = duration;
       this->output->set(value);
     }
+    boolean isActive() {
+      return this->output->isActive();
+    }
     boolean getState() {
       return this->output->getState();
     }
