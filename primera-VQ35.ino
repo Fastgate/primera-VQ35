@@ -5,7 +5,7 @@
 #include "Serial.h"
 #include "Mmi.h"
 #include "Hvac.h"
-
+#include "Sleep.h"
 
   /////////////
  // HELPERS // 
@@ -155,6 +155,12 @@ DigitalSensor backDoorSensor(56, 20, LOW, INPUT_PULLUP);
 
 int fob_did = 0;
 
+  ///////////////////////
+ // SLEEP DEFINITIONS //
+///////////////////////
+
+Sleep sleep(23, 1000);
+
 // **************************** ANDROID OTG **************************************
 
 int Android_OTG = 55;
@@ -218,6 +224,8 @@ void loop() {
   FOB();                           // Funkfernbedienung
 
   updateHvac();
+
+  sleep.update();
 }
 
 
@@ -616,6 +624,9 @@ void FOB(){
     if (driverDoorSensor.getState() || passengerDoorSensor.getState() || backDoorSensor.getState()) {
       unlockRelay.set(HIGH, 100);
       Serial.println("TÜR OFFEN!!!");
+    } 
+    else {
+      sleep.deepSleep();
     }
     digitalWrite(Android_OTG, LOW);
     OTG_status = 0;
