@@ -5,7 +5,7 @@
 #include "Serial.h"
 #include "Mmi.h"
 #include "Hvac.h"
-
+#include "Sleep.h"
 
   /////////////
  // HELPERS // 
@@ -159,25 +159,7 @@ int fob_did = 0;
  // SLEEP DEFINITIONS //
 ///////////////////////
 
-
-
-#include <Snooze.h>
-#include <Bounce.h>
-
-// Load drivers
-SnoozeDigital digital;// this is the pin wakeup driver
-// configures the lc's 5v data buffer (OUTPUT, LOW) for low power
-Snoozelc5vBuffer lc5vBuffer;
-
-// use bounce for pin 21, debounce of 5ms
-Bounce button = Bounce(6, 5);
-
-// install driver into SnoozeBlock
-#if defined(__MK66FX1M0__) || defined(__MK64FX512__) || defined(__MK20DX256__)
-SnoozeBlock config_teensy3x(digital);
-#elif defined(__MKL26Z64__)
-SnoozeBlock config_teensyLC(digital, lc5vBuffer);
-#endif
+Sleep sleep(13, 100);
 
 // **************************** ANDROID OTG **************************************
 
@@ -222,17 +204,6 @@ void setup() {
 
   pinMode(Android_OTG, OUTPUT);
   pinMode(USB_HUB, OUTPUT);
-
-   // Configure pin 2 for bounce library
-    pinMode(6, INPUT);
-    // debug led
-    pinMode(LED_BUILTIN, OUTPUT);
-    while (!Serial);
-    delay(100);
-    Serial.println("start...");
-    delay(20);
-    //pin, mode, type
-    digital.pinMode(6, INPUT, FALLING);
 }
 
 
@@ -254,7 +225,7 @@ void loop() {
 
   updateHvac();
 
- 
+  updateSleep();
 }
 
 
@@ -624,11 +595,9 @@ void FOB(){
 
   if(keySensor.getState())  {
     digitalWrite(USB_HUB, HIGH);
-    Serial.println("HUB ON");
   } 
   else {
     digitalWrite(USB_HUB, LOW);
-    Serial.println("HUB OFF");
   }
 
   if (zvUnlockButton.wasPressedTimes(1)) {
@@ -655,41 +624,10 @@ void FOB(){
       Serial.println("TÜR OFFEN!!!");
     } 
     else {
-     
-    // if not held for 3 sec go back here to sleep.
-SLEEP:
-    // you need to update before sleeping.
-    button.update();
+      Serial.println("SNOOZE!!!");
+      sleep.deepSleep();       
+    }
     
-    // returns module that woke processor after waking from low power mode.
-#if defined(__MK66FX1M0__) || defined(__MK64FX512__) || defined(__MK20DX256__)
-    Snooze.deepSleep( config_teensy3x );
-#elif defined(__MKL26Z64__)
-    Snooze.deepSleep( config_teensyLC );
-#endif
-    
-    // indicate the button woke it up, hold led high for as long as the button
-    // is held down.
-    digitalWrite(LED_BUILTIN, HIGH);
-    
-    elapsedMillis timeout = 0;
-    // bounce needs to call update longer than the debounce time = 5ms,
-    // which is set in constructor.
-    while (timeout < 6) button.update();
-    
-    // now check for 3 second button hold
-    bool awake = threeSecondHold();
-    
-    // if not held for 3 seconds go back to sleep
-    if (!awake) goto SLEEP;
-    
-    // the button was held for at least 3 seconds if
-    // you get here do some stuff for 7 seconds then
-    // go to sleep.
-  
-}
-
-
     digitalWrite(Android_OTG, LOW);
     OTG_status = 0;
     Serial.println("OTG AUS");
@@ -709,30 +647,6 @@ SLEEP:
   }
 }
 
-bool threeSecondHold() {
-    // this is the 3 sec button press check
-    while (button.duration() < 3000) {
-        
-        // get the current pin state, must have this!
-        button.update();
-        
-        // check the pin 2 state, if button not
-        // pressed before 3 seconds go back to
-        // sleep. We read 0 since pin 2 is
-        // configured as INPUT_PULLUP.
-        if (button.read() != 0) {
-            digitalWrite(LED_BUILTIN, LOW);
-            // let go of button before 3 sec up
-            return false;
-        }
-    }
-    digitalWrite(LED_BUILTIN, LOW);
-    
-    // button was held for 3 seconds so now we are awake
-    return true;
-    }
-
-
   ////////////////////
  // HVAC FUNCTIONS // 
 ////////////////////
@@ -741,3 +655,10 @@ void updateHvac() {
   hvac.update();
 }
 
+  /////////////////////
+ // SLEEP FUNCTIONS // 
+/////////////////////
+
+void updateSleep() {
+  sleep.update();
+}
