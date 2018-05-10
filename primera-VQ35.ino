@@ -5,7 +5,7 @@
 #include "Serial.h"
 #include "Mmi.h"
 #include "Hvac.h"
-#include "Sleep.h"
+
 
   /////////////
  // HELPERS // 
@@ -80,7 +80,7 @@ bool illuminationState = false;
 #define IGNITION_ACC  1
 #define IGNITION_ON   2
 
-#define CRANK_DURATION 3000
+#define CRANK_DURATION 600
 #define ENGINE_BUTTON_STOP_DURATION 3000
 
 Button ignitionButton(new DigitalSensor(39, 20, HIGH, INPUT), 0);
@@ -102,14 +102,14 @@ struct {
   IntervalOutput *red   = new IntervalOutput(new DigitalOutput(24, LOW));
   DigitalOutput *acc    = new DigitalOutput(5, LOW);
   DigitalOutput *on     = new DigitalOutput(2, LOW);
-  DigitalOutput *nats   = new DigitalOutput(53, LOW);
+  DigitalOutput *nats   = new DigitalOutput(57, LOW);
 } ignitionLights;
 
 struct {
   DigitalOutput *acc  = new DigitalOutput(42);
   DigitalOutput *on   = new DigitalOutput(44);
   DigitalOutput *key  = new DigitalOutput(43);
-  DigitalOutput *nats = new DigitalOutput(57);
+  DigitalOutput *nats = new DigitalOutput(53);
   TimedOutput *crank  = new TimedOutput(new DigitalOutput(41));
 } ignitionOutputs;
 
@@ -144,8 +144,8 @@ int RevGear_Stat = 0;
  // KEY REMOTE DEFINITIONS //
 ////////////////////////////
 
-Button zvLockButton(new DigitalSensor(22));
-Button zvUnlockButton(new DigitalSensor(23));
+Button zvLockButton(new DigitalSensor(22),700);
+Button zvUnlockButton(new DigitalSensor(23),700);
 TimedOutput lockRelay(new DigitalOutput(27, HIGH));
 TimedOutput unlockRelay(new DigitalOutput(28, HIGH));
 
@@ -159,7 +159,25 @@ int fob_did = 0;
  // SLEEP DEFINITIONS //
 ///////////////////////
 
-Sleep sleep(6, 100);
+
+
+#include <Snooze.h>
+#include <Bounce.h>
+
+// Load drivers
+SnoozeDigital digital;// this is the pin wakeup driver
+// configures the lc's 5v data buffer (OUTPUT, LOW) for low power
+Snoozelc5vBuffer lc5vBuffer;
+
+// use bounce for pin 21, debounce of 5ms
+Bounce button = Bounce(6, 5);
+
+// install driver into SnoozeBlock
+#if defined(__MK66FX1M0__) || defined(__MK64FX512__) || defined(__MK20DX256__)
+SnoozeBlock config_teensy3x(digital);
+#elif defined(__MKL26Z64__)
+SnoozeBlock config_teensyLC(digital, lc5vBuffer);
+#endif
 
 // **************************** ANDROID OTG **************************************
 
@@ -205,7 +223,16 @@ void setup() {
   pinMode(Android_OTG, OUTPUT);
   pinMode(USB_HUB, OUTPUT);
 
-  sleep.setup();
+   // Configure pin 2 for bounce library
+    pinMode(6, INPUT);
+    // debug led
+    pinMode(LED_BUILTIN, OUTPUT);
+    while (!Serial);
+    delay(100);
+    Serial.println("start...");
+    delay(20);
+    //pin, mode, type
+    digital.pinMode(6, INPUT, FALLING);
 }
 
 
@@ -227,7 +254,7 @@ void loop() {
 
   updateHvac();
 
-  sleep.update();
+ 
 }
 
 
@@ -628,8 +655,41 @@ void FOB(){
       Serial.println("TÜR OFFEN!!!");
     } 
     else {
-      sleep.deepSleep();
-    }
+     
+    // if not held for 3 sec go back here to sleep.
+SLEEP:
+    // you need to update before sleeping.
+    button.update();
+    
+    // returns module that woke processor after waking from low power mode.
+#if defined(__MK66FX1M0__) || defined(__MK64FX512__) || defined(__MK20DX256__)
+    Snooze.deepSleep( config_teensy3x );
+#elif defined(__MKL26Z64__)
+    Snooze.deepSleep( config_teensyLC );
+#endif
+    
+    // indicate the button woke it up, hold led high for as long as the button
+    // is held down.
+    digitalWrite(LED_BUILTIN, HIGH);
+    
+    elapsedMillis timeout = 0;
+    // bounce needs to call update longer than the debounce time = 5ms,
+    // which is set in constructor.
+    while (timeout < 6) button.update();
+    
+    // now check for 3 second button hold
+    bool awake = threeSecondHold();
+    
+    // if not held for 3 seconds go back to sleep
+    if (!awake) goto SLEEP;
+    
+    // the button was held for at least 3 seconds if
+    // you get here do some stuff for 7 seconds then
+    // go to sleep.
+  
+}
+
+
     digitalWrite(Android_OTG, LOW);
     OTG_status = 0;
     Serial.println("OTG AUS");
@@ -648,6 +708,29 @@ void FOB(){
     }
   }
 }
+
+bool threeSecondHold() {
+    // this is the 3 sec button press check
+    while (button.duration() < 3000) {
+        
+        // get the current pin state, must have this!
+        button.update();
+        
+        // check the pin 2 state, if button not
+        // pressed before 3 seconds go back to
+        // sleep. We read 0 since pin 2 is
+        // configured as INPUT_PULLUP.
+        if (button.read() != 0) {
+            digitalWrite(LED_BUILTIN, LOW);
+            // let go of button before 3 sec up
+            return false;
+        }
+    }
+    digitalWrite(LED_BUILTIN, LOW);
+    
+    // button was held for 3 seconds so now we are awake
+    return true;
+    }
 
 
   ////////////////////
