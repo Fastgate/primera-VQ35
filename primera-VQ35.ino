@@ -159,7 +159,7 @@ int fob_did = 0;
  // SLEEP DEFINITIONS //
 ///////////////////////
 
-Sleep sleep(23, 1000);
+Sleep sleep(6, 100);
 
 // **************************** ANDROID OTG **************************************
 
@@ -204,6 +204,8 @@ void setup() {
 
   pinMode(Android_OTG, OUTPUT);
   pinMode(USB_HUB, OUTPUT);
+
+  sleep.setup();
 }
 
 
@@ -620,7 +622,7 @@ void FOB(){
   }
 
   
-  if (zvLockButton.wasPressedTimesOrMore(1)) {
+  if (zvLockButton.wasPressedTimes(1)) {
     if (driverDoorSensor.getState() || passengerDoorSensor.getState() || backDoorSensor.getState()) {
       unlockRelay.set(HIGH, 100);
       Serial.println("TÜR OFFEN!!!");

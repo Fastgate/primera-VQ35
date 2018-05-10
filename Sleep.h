@@ -8,14 +8,18 @@ class Sleep {
     Sleep(int interruptPin, long timeout) {
       this->interruptPin = interruptPin;
       this->timeout = timeout;
-      SnoozeDigital digitalSnooze;
-      digitalSnooze.pinMode(this->interruptPin, INPUT_PULLUP, RISING);
-      this->snoozeConfig = new SnoozeBlock(digitalSnooze);
+      this->digitalSnooze = new SnoozeDigital();
+      this->snoozeConfig = new SnoozeBlock(*this->digitalSnooze);
+    }
+    void setup() {
+      this->digitalSnooze->pinMode(this->interruptPin, INPUT, RISING);      
     }
     void update() {
       if (this->sleepRequestTime > 0 && millis() - this->sleepRequestTime >= this->timeout) {
         this->sleepRequestTime = 0;
+        Serial.println("Going to sleep");
         Snooze.deepSleep(*this->snoozeConfig);
+        Serial.println("Waking up!");
       }
     }
     void deepSleep() {
@@ -24,11 +28,12 @@ class Sleep {
     virtual ~Sleep() {
       delete this->snoozeConfig;
     };
-  protected:
+  private:
     int interruptPin;
     unsigned long timeout;
     unsigned long sleepRequestTime = 0;
     SnoozeBlock *snoozeConfig;
+    SnoozeDigital *digitalSnooze;
 };
 
 #endif
