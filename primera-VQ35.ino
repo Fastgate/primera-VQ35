@@ -582,6 +582,7 @@ void updateBcm(Button *lockButton, Button *unlockButton, Bcm *bcm) {
   
   if (unlockButton->wasPressedTimes(1)) {
     acm.setOtg(true);
+    sleep.cancelSleepRequest();
   } 
   else if (unlockButton->wasPressedTimes(3)) {
     bcm->openWindows();

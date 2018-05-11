@@ -23,6 +23,9 @@ class Sleep {
         Serial.println("Waking up!");
       }
     }
+    void cancelSleepRequest() {
+      this->sleepRequestTime = 0;
+    }
     void deepSleep() {
       this->sleepRequestTime = millis();
     }
