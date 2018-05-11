@@ -159,7 +159,7 @@ int fob_did = 0;
  // SLEEP DEFINITIONS //
 ///////////////////////
 
-Sleep sleep(13, 100);
+Sleep sleep(13, 10*60*1000);
 
 // **************************** ANDROID OTG **************************************
 
@@ -615,11 +615,14 @@ void FOB(){
   if (zvUnlockButton.wasPressedTimes(3)) {
     Serial.println("AufschlieÃŸen und Fenster auf.");
     unlockRelay.set(HIGH, 4000);
+    digitalWrite(Android_OTG, HIGH);
+    Serial.println("OTG AN!!!");
+    OTG_status = 1;
   }
 
   
   if (zvLockButton.wasPressedTimes(1)) {
-    if (driverDoorSensor.getState() || passengerDoorSensor.getState() || backDoorSensor.getState()) {
+    if (driverDoorSensor.getState() || passengerDoorSensor.getState() || backDoorSensor.getState()|| keySensor.getState()){
       unlockRelay.set(HIGH, 100);
       Serial.println("TÜR OFFEN!!!");
     } 
@@ -632,13 +635,31 @@ void FOB(){
     OTG_status = 0;
     Serial.println("OTG AUS");
   }
-  
-  if (zvLockButton.wasPressedTimes(3)) {
-    Serial.println("AbschlieÃŸen und Fenster zu.");
-    lockRelay.set(HIGH, 6000);
+
+   if (zvLockButton.wasPressedTimes(3)) {
+    if (driverDoorSensor.getState() || passengerDoorSensor.getState() || backDoorSensor.getState()|| keySensor.getState()){
+      unlockRelay.set(HIGH, 100);
+      Serial.println("TÜR OFFEN!!!");
+    } 
+    else {
+      Serial.println("SNOOZE!!!");
+      sleep.deepSleep(); 
+      Serial.println("AbschlieÃŸen und Fenster zu.");
+      lockRelay.set(HIGH, 6000);      
+    }
+    
+    digitalWrite(Android_OTG, LOW);
+    OTG_status = 0;
+    Serial.println("OTG AUS");
   }
- 
+
+
   if (zvLockButton.wasPressedTimesOrMore(4)) {
+    if (driverDoorSensor.getState() || passengerDoorSensor.getState() || backDoorSensor.getState()|| keySensor.getState()){
+      unlockRelay.set(HIGH, 100);
+      Serial.println("TÜR OFFEN!!!");
+    } 
+    else 
     if(fob_did == 0){
       startEngine();
       Serial.println("Remote_START");
