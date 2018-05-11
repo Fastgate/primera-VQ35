@@ -7,6 +7,8 @@
 #include "Hvac.h"
 #include "Sleep.h"
 
+#include "Bcm.h"
+
   /////////////
  // HELPERS // 
 /////////////
@@ -140,20 +142,12 @@ int RevGear = 38;           // Rückwärtsgang  OK
 int RevGear_Stat = 0;
 
 
-  ////////////////////////////
- // KEY REMOTE DEFINITIONS //
-////////////////////////////
+  /////////////////////
+ // BCM DEFINITIONS //
+/////////////////////
 
-Button zvLockButton(new DigitalSensor(22),700);
-Button zvUnlockButton(new DigitalSensor(23),700);
-TimedOutput lockRelay(new DigitalOutput(27, HIGH));
-TimedOutput unlockRelay(new DigitalOutput(28, HIGH));
+Bcm bcm;
 
-DigitalSensor driverDoorSensor(49, 20, LOW, INPUT_PULLUP);
-DigitalSensor passengerDoorSensor(51, 20, LOW, INPUT_PULLUP);
-DigitalSensor backDoorSensor(56, 20, LOW, INPUT_PULLUP);
-
-int fob_did = 0;
 
   ///////////////////////
  // SLEEP DEFINITIONS //
@@ -221,7 +215,7 @@ void loop() {
 
   updateSwc();
 
-  FOB();                           // Funkfernbedienung
+  bcm.update(updateBcm);
 
   updateHvac();
 
@@ -460,7 +454,7 @@ void updateIgnition() {
       }
     }
   }
-  else if (unlockRelay.getState() == LOW) {
+  else if (bcm.areDoorsUnlocked()) {
     setIgnitionLight(1, 0, 0);
   }
   else {
@@ -583,69 +577,53 @@ void updateSwc() {
 }
  
 
-  //////////////////////////
- // KEY REMOTE FUNCTIONS //
-//////////////////////////
+  ///////////////////
+ // BCM FUNCTIONS //
+///////////////////
 
-void FOB(){
-  zvLockButton.update();
-  zvUnlockButton.update();
-  lockRelay.update();
-  unlockRelay.update();
-
+void updateBcm(Button *lockButton, Button *unlockButton, Bcm *bcm) {
   if(keySensor.getState())  {
     digitalWrite(USB_HUB, HIGH);
   } 
   else {
     digitalWrite(USB_HUB, LOW);
   }
-
-  if (zvUnlockButton.wasPressedTimes(1)) {
-    if(fob_did == 1){
-      stopEngine();
-
-      fob_did = 0;
-    }
+  
+  if (unlockButton->wasPressedTimes(1)) {
     Serial.println("AufschlieÃŸen.");
     digitalWrite(Android_OTG, HIGH);
     Serial.println("OTG AN!!!");
     OTG_status = 1;
-  }
-  
-  if (zvUnlockButton.wasPressedTimes(3)) {
-    Serial.println("AufschlieÃŸen und Fenster auf.");
-    unlockRelay.set(HIGH, 4000);
+  } 
+  else if (unlockButton->wasPressedTimes(3)) {
+    bcm->openWindows();
   }
 
-  
-  if (zvLockButton.wasPressedTimes(1)) {
-    if (driverDoorSensor.getState() || passengerDoorSensor.getState() || backDoorSensor.getState()) {
-      unlockRelay.set(HIGH, 100);
-      Serial.println("TÜR OFFEN!!!");
+  if (lockButton->wasPressedTimes(1)) {
+    if (bcm->isAnyDoorOpen()) {
+      bcm->unlockDoors();
     } 
     else {
-      Serial.println("SNOOZE!!!");
-      sleep.deepSleep();       
+      if (!keySensor.getState()) {
+        sleep.deepSleep();
+        digitalWrite(Android_OTG, LOW);
+        OTG_status = 0;
+        Serial.println("OTG AUS");
+      }
     }
     
     digitalWrite(Android_OTG, LOW);
     OTG_status = 0;
     Serial.println("OTG AUS");
   }
-  
-  if (zvLockButton.wasPressedTimes(3)) {
-    Serial.println("AbschlieÃŸen und Fenster zu.");
-    lockRelay.set(HIGH, 6000);
+  else if (lockButton->wasPressedTimes(3)) {
+    bcm->closeWindows();
   }
- 
-  if (zvLockButton.wasPressedTimesOrMore(4)) {
-    if(fob_did == 0){
-      startEngine();
-      Serial.println("Remote_START");
-      fob_did = 1;
-    }
+  else if (lockButton->wasPressedTimesOrMore(4)) {
+    // TODO: Start engine for 10 minutes
   }
 }
+
 
   ////////////////////
  // HVAC FUNCTIONS // 
