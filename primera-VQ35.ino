@@ -7,6 +7,7 @@
 #include "Hvac.h"
 #include "Sleep.h"
 
+#include "Acm.h"
 #include "Bcm.h"
 
   /////////////
@@ -155,12 +156,12 @@ Bcm bcm;
 
 Sleep sleep(13, 10 * 60 * 1000);
 
-// **************************** ANDROID OTG **************************************
 
-int Android_OTG = 55;
-int OTG_status = 0;
-int USB_HUB = 54;
-int USB_HUB_status = 0;
+  /////////////////////
+ // ACM DEFINITIONS // 
+/////////////////////
+
+Acm acm;
 
 
   //////////////////////
@@ -193,11 +194,6 @@ void setup() {
   
   pinMode(RevGear, INPUT_PULLUP);
   digitalWrite(RevGear, HIGH); 
-     
-  // *********************** Android OTG *******************************
-
-  pinMode(Android_OTG, OUTPUT);
-  pinMode(USB_HUB, OUTPUT);
 }
 
 
@@ -582,18 +578,10 @@ void updateSwc() {
 ///////////////////
 
 void updateBcm(Button *lockButton, Button *unlockButton, Bcm *bcm) {
-  if(keySensor.getState())  {
-    digitalWrite(USB_HUB, HIGH);
-  } 
-  else {
-    digitalWrite(USB_HUB, LOW);
-  }
+  acm.setHub(keySensor.getState());
   
   if (unlockButton->wasPressedTimes(1)) {
-    Serial.println("AufschlieÃŸen.");
-    digitalWrite(Android_OTG, HIGH);
-    Serial.println("OTG AN!!!");
-    OTG_status = 1;
+    acm.setOtg(true);
   } 
   else if (unlockButton->wasPressedTimes(3)) {
     bcm->openWindows();
@@ -606,15 +594,9 @@ void updateBcm(Button *lockButton, Button *unlockButton, Bcm *bcm) {
     else {
       if (!keySensor.getState()) {
         sleep.deepSleep();
-        digitalWrite(Android_OTG, LOW);
-        OTG_status = 0;
-        Serial.println("OTG AUS");
+        acm.setOtg(false);
       }
     }
-    
-    digitalWrite(Android_OTG, LOW);
-    OTG_status = 0;
-    Serial.println("OTG AUS");
   }
   else if (lockButton->wasPressedTimes(3)) {
     bcm->closeWindows();
