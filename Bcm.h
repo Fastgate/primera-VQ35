@@ -43,14 +43,14 @@ class Bcm {
       bcmCallback(this->lockButton, this->unlockButton, this);
     }
   private:
-    Button *lockButton = new Button(new DigitalSensor(22),700);
-    Button *unlockButton = new Button(new DigitalSensor(23),700);
+    Button *lockButton = new Button(new DigitalInput(22),700);
+    Button *unlockButton = new Button(new DigitalInput(23),700);
     TimedOutput *lockRelay = new TimedOutput(new DigitalOutput(27, HIGH));
     TimedOutput *unlockRelay = new TimedOutput(new DigitalOutput(28, HIGH));
   
-    DigitalSensor *driverDoorSensor = new DigitalSensor(49, 20, LOW, INPUT_PULLUP);
-    DigitalSensor *passengerDoorSensor = new DigitalSensor(51, 20, LOW, INPUT_PULLUP);
-    DigitalSensor *backDoorSensor = new DigitalSensor(56, 20, LOW, INPUT_PULLUP);
+    DigitalInput *driverDoorSensor = new DigitalInput(49, 20, LOW, INPUT_PULLUP);
+    DigitalInput *passengerDoorSensor = new DigitalInput(51, 20, LOW, INPUT_PULLUP);
+    DigitalInput *backDoorSensor = new DigitalInput(56, 20, LOW, INPUT_PULLUP);
 };
 
 #endif

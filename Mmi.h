@@ -1,11 +1,11 @@
 #ifndef MMI_H
 #define MMI_H
 
-#include "Button.h"
+#include <arduinoIO.h>
 
-class MmiButtonSensor : public Sensor {
+class MmiButtonInput : public Input {
   public:
-    MmiButtonSensor(int buttonId) {
+    MmiButtonInput(int buttonId) {
       _buttonId = buttonId;
     }
     virtual boolean getState() { 
@@ -23,17 +23,17 @@ class MmiButtonSensor : public Sensor {
 
 class MmiButton : public Button {
   public:
-    MmiButton(MmiButtonSensor *sensor) : Button(sensor) {
-      _sensor = sensor;
+    MmiButton(MmiButtonInput *input) : Button(input) {
+      _input = input;
     }
     void updateTrigger(int buttonId, boolean newState) {
-      _sensor->update(buttonId, newState);
+      _input->update(buttonId, newState);
     }
     ~MmiButton() {
-      delete _sensor;
+      delete _input;
     }
   private:
-    MmiButtonSensor *_sensor;
+    MmiButtonInput *_input;
 };
 
 class MmiWheel {
@@ -95,7 +95,7 @@ public:
     if (_assignedButtonCount >= _buttonCount) {
       return nullptr;
     }
-    MmiButton *button = new MmiButton(new MmiButtonSensor(buttonId));
+    MmiButton *button = new MmiButton(new MmiButtonInput(buttonId));
     _buttons[_assignedButtonCount] = button;
     _assignedButtonCount++;
     return button;

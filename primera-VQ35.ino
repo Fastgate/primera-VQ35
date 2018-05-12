@@ -1,6 +1,6 @@
 #include <SPI.h>
-#include "Button.h"
-#include "Output.h"
+#include <arduinoIO.h>
+
 #include "Binary.h"
 #include "Serial.h"
 #include "Mmi.h"
@@ -65,9 +65,9 @@ MmiLight mmiRadioLight(0x18, &mmi);
  // ILLUMINATION DEFINITIONS // 
 //////////////////////////////
 
-DigitalSensor illuminationSensor(37, 20, LOW, INPUT_PULLUP);
-Button illuminationDimUpButton(new DigitalSensor(45, 20, LOW, INPUT_PULLUP), 0);
-Button illuminationDimDownButton(new DigitalSensor(46, 20, LOW, INPUT_PULLUP), 0);
+DigitalInput illuminationSensor(37, 20, LOW, INPUT_PULLUP);
+Button illuminationDimUpButton(new DigitalInput(45, 20, LOW, INPUT_PULLUP), 0);
+Button illuminationDimDownButton(new DigitalInput(46, 20, LOW, INPUT_PULLUP), 0);
 AnalogOutput illuminationOutput(21);
 
 uint8_t desiredIlluminationLevel = 0xFF / 2;
@@ -86,12 +86,12 @@ bool illuminationState = false;
 #define CRANK_DURATION 600
 #define ENGINE_BUTTON_STOP_DURATION 3000
 
-Button ignitionButton(new DigitalSensor(39, 20, HIGH, INPUT), 0);
-Button crankSensor(new DigitalSensor(41, 20, HIGH, OUTPUT));
-DigitalSensor clutchSensor(16, 20, HIGH, INPUT);
-DigitalSensor brakeSensor(17, 20, HIGH, INPUT);
-DigitalSensor neutralSensor(36, 20, HIGH, INPUT);
-DigitalSensor keySensor(6, 20, HIGH, INPUT);
+Button ignitionButton(new DigitalInput(39, 20, HIGH, INPUT), 0);
+Button crankSensor(new DigitalInput(41, 20, HIGH, OUTPUT));
+DigitalInput clutchSensor(16, 20, HIGH, INPUT);
+DigitalInput brakeSensor(17, 20, HIGH, INPUT);
+DigitalInput neutralSensor(36, 20, HIGH, INPUT);
+DigitalInput keySensor(6, 20, HIGH, INPUT);
 
 struct {
   uint8_t state = IGNITION_OFF;
@@ -121,7 +121,7 @@ struct {
  // HEADLIGHT WASHER DEFINITIONS // 
 //////////////////////////////////
 
-Button headlightWasherButton(new DigitalSensor(34, 20, HIGH, INPUT_PULLUP));
+Button headlightWasherButton(new DigitalInput(34, 20, HIGH, INPUT_PULLUP));
 TimedOutput headlightWasherRelay(new DigitalOutput(40));
 
 
@@ -129,12 +129,12 @@ TimedOutput headlightWasherRelay(new DigitalOutput(40));
  // STEERING WHEEL CONTROLS // 
 /////////////////////////////
 
-Button swcVolumeUpButton(new AnalogSensor(A11, 28, 34), 0);
-Button swcVolumeDownButton(new AnalogSensor(A10, 28, 34), 0);
-Button swcPhoneButton(new AnalogSensor(A11, 10, 16), 0);
-Button swcVoiceButton(new AnalogSensor(A10, 10, 16), 0);
-Button swcSeekUpButton(new AnalogSensor(A11, 15, 20), 0);
-Button swcSeekDownButton(new AnalogSensor(A10, 15, 20), 0);
+Button swcVolumeUpButton(new AnalogInput(A11, 28, 34), 0);
+Button swcVolumeDownButton(new AnalogInput(A10, 28, 34), 0);
+Button swcPhoneButton(new AnalogInput(A11, 10, 16), 0);
+Button swcVoiceButton(new AnalogInput(A10, 10, 16), 0);
+Button swcSeekUpButton(new AnalogInput(A11, 15, 20), 0);
+Button swcSeekDownButton(new AnalogInput(A10, 15, 20), 0);
 
 
 //************************** Primera STW Inputs *******************************
