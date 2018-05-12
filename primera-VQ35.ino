@@ -1,9 +1,9 @@
 #include <SPI.h>
 #include <arduinoIO.h>
+#include <arduinoMmi.h>
 
 #include "Binary.h"
 #include "Serial.h"
-#include "Mmi.h"
 #include "Hvac.h"
 #include "Sleep.h"
 
