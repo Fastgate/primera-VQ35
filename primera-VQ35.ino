@@ -9,9 +9,10 @@
 
 #include "Acm.h"
 #include "Bcm.h"
+#include "Ecm.h"
 
   /////////////
- // HELPERS // 
+ // HELPERS //
 /////////////
 
 #define min(X, Y)  ((X) < (Y) ? (X) : (Y))
@@ -19,7 +20,7 @@
 
 
   /////////////////////
- // MMI DEFINITIONS // 
+ // MMI DEFINITIONS //
 /////////////////////
 
 // Buttons
@@ -62,7 +63,7 @@ MmiLight mmiRadioLight(0x18, &mmi);
 
 
   //////////////////////////////
- // ILLUMINATION DEFINITIONS // 
+ // ILLUMINATION DEFINITIONS //
 //////////////////////////////
 
 DigitalInput illuminationSensor(37, 20, LOW, INPUT_PULLUP);
@@ -75,50 +76,27 @@ uint8_t illuminationLevel = 0x00;
 bool illuminationState = false;
 
 
+  /////////////////////
+ // BCM DEFINITIONS //
+/////////////////////
+
+Bcm bcm;
+
+
   //////////////////////////
- // IGNITION DEFINITIONS // 
+ // IGNITION DEFINITIONS //
 //////////////////////////
 
-#define IGNITION_OFF  0
-#define IGNITION_ACC  1
-#define IGNITION_ON   2
-
-#define CRANK_DURATION 600
-#define ENGINE_BUTTON_STOP_DURATION 3000
-
-Button ignitionButton(new DigitalInput(39, 20, HIGH, INPUT), 0);
-Button crankSensor(new DigitalInput(41, 20, HIGH, OUTPUT));
 DigitalInput clutchSensor(16, 20, HIGH, INPUT);
 DigitalInput brakeSensor(17, 20, HIGH, INPUT);
 DigitalInput neutralSensor(36, 20, HIGH, INPUT);
 DigitalInput keySensor(6, 20, HIGH, INPUT);
 
-struct {
-  uint8_t state = IGNITION_OFF;
-  bool engine   = false;
-  bool crank    = false;
-} ignition;
-
-struct {
-  uint8_t state         = 0;
-  IntervalOutput *green = new IntervalOutput(new DigitalOutput(20, LOW));
-  IntervalOutput *red   = new IntervalOutput(new DigitalOutput(24, LOW));
-  DigitalOutput *acc    = new DigitalOutput(5, LOW);
-  DigitalOutput *on     = new DigitalOutput(2, LOW);
-  DigitalOutput *nats   = new DigitalOutput(57, LOW);
-} ignitionLights;
-
-struct {
-  DigitalOutput *acc  = new DigitalOutput(42);
-  DigitalOutput *on   = new DigitalOutput(44);
-  DigitalOutput *key  = new DigitalOutput(43);
-  DigitalOutput *nats = new DigitalOutput(53);
-  TimedOutput *crank  = new TimedOutput(new DigitalOutput(41));
-} ignitionOutputs;
+Ecm ecm(&clutchSensor, &brakeSensor, &neutralSensor, &keySensor, &bcm);
 
 
   //////////////////////////////////
- // HEADLIGHT WASHER DEFINITIONS // 
+ // HEADLIGHT WASHER DEFINITIONS //
 //////////////////////////////////
 
 Button headlightWasherButton(new DigitalInput(34, 20, HIGH, INPUT_PULLUP));
@@ -126,7 +104,7 @@ TimedOutput headlightWasherRelay(new DigitalOutput(40));
 
 
   /////////////////////////////
- // STEERING WHEEL CONTROLS // 
+ // STEERING WHEEL CONTROLS //
 /////////////////////////////
 
 Button swcVolumeUpButton(new AnalogInput(A11, 28, 34), 0);
@@ -143,13 +121,6 @@ int RevGear = 38;           // Rückwärtsgang  OK
 int RevGear_Stat = 0;
 
 
-  /////////////////////
- // BCM DEFINITIONS //
-/////////////////////
-
-Bcm bcm;
-
-
   ///////////////////////
  // SLEEP DEFINITIONS //
 ///////////////////////
@@ -158,14 +129,14 @@ Sleep sleep(13, 10 * 60 * 1000);
 
 
   /////////////////////
- // ACM DEFINITIONS // 
+ // ACM DEFINITIONS //
 /////////////////////
 
 Acm acm;
 
 
   //////////////////////
- // HVAC DEFINITIONS // 
+ // HVAC DEFINITIONS //
 //////////////////////
 
 Hvac hvac;
@@ -183,29 +154,29 @@ SerialReader serialReader(128);
 
 
   //////////////////
- // SKETCH SETUP // 
+ // SKETCH SETUP //
 //////////////////
 
 void setup() {
   Serial.begin(115200);
   statusInitSuccess.serialize(Serial);
-    
+
   // *********************** Primera STW Inputs ************************
-  
+
   pinMode(RevGear, INPUT_PULLUP);
-  digitalWrite(RevGear, HIGH); 
+  digitalWrite(RevGear, HIGH);
 }
 
 
   /////////////////
- // SKETCH LOOP // 
+ // SKETCH LOOP //
 /////////////////
 
-void loop() {  
+void loop() {
   updateMmi();
   updateIllumination();
 
-  updateIgnition();
+  ecm.update();
 
   updateHeadlightWasher();
 
@@ -220,7 +191,7 @@ void loop() {
 
 
   //////////////////
- // SERIAL EVENT // 
+ // SERIAL EVENT //
 //////////////////
 
 void serialEvent() {
@@ -232,19 +203,19 @@ void readSerial(uint8_t type, uint8_t id, BinaryBuffer *payloadBuffer) {
     case 0x61:
       switch (id) {
         case 0x72: { // set baud rate
-          BinaryData::LongResult result = payloadBuffer->readLong();
-          if (result.state == BinaryData::OK) {
-            baudRateChange.payload(htonl(result.data));
-            baudRateChange.serialize(Serial);
-            Serial.flush();
-            Serial.end();
-            Serial.begin(result.data);
-            while (Serial.available()) {
-              Serial.read();
+            BinaryData::LongResult result = payloadBuffer->readLong();
+            if (result.state == BinaryData::OK) {
+              baudRateChange.payload(htonl(result.data));
+              baudRateChange.serialize(Serial);
+              Serial.flush();
+              Serial.end();
+              Serial.begin(result.data);
+              while (Serial.available()) {
+                Serial.read();
+              }
             }
+            break;
           }
-          break;
-        }
       }
       break;
     case 0x63:
@@ -255,12 +226,12 @@ void readSerial(uint8_t type, uint8_t id, BinaryBuffer *payloadBuffer) {
 
 
   ///////////////////
- // MMI FUNCTIONS // 
+ // MMI FUNCTIONS //
 ///////////////////
 
 void updateMmi() {
   mmi.update(mmiEvent);
-  
+
   if (mmiNavButton->wasPressedTimes(1)) {
     mmiNavLight.toggle();
   }
@@ -313,24 +284,24 @@ void updateMmi() {
     Keyboard.press(KEY_MEDIA_PLAY_SKIP);
     Keyboard.release(KEY_MEDIA_PLAY_SKIP);
   }
-  
+
   if (mmiBigWheel->wasTurned()) {
     if (mmiBigWheel->getAmount() < 0) {
       Keyboard.press(MODIFIERKEY_SHIFT);
-      Keyboard.press(KEY_TAB);    
+      Keyboard.press(KEY_TAB);
       Keyboard.release(KEY_TAB);
-      Keyboard.release(MODIFIERKEY_SHIFT);    
+      Keyboard.release(MODIFIERKEY_SHIFT);
     }
     else {
-      Keyboard.press(KEY_TAB);    
+      Keyboard.press(KEY_TAB);
       Keyboard.release(KEY_TAB);
     }
   }
   if (mmiBigWheelButton->wasPressedTimes(1)) {
     Keyboard.press(KEY_MEDIA_PLAY_PAUSE);
-    Keyboard.release(KEY_MEDIA_PLAY_PAUSE);     
+    Keyboard.release(KEY_MEDIA_PLAY_PAUSE);
   }
-  
+
   if (mmiSmallWheel->wasTurned()) {
     if (mmiSmallWheel->getAmount() < 0) {
       Keyboard.press(KEY_MEDIA_VOLUME_DEC);
@@ -359,29 +330,29 @@ void mmiEvent(uint8_t code) {
 
 
   ////////////////////////////
- // ILLUMINATION FUNCTIONS // 
+ // ILLUMINATION FUNCTIONS //
 ////////////////////////////
 
 void updateIllumination() {
   illuminationDimUpButton.update();
   illuminationDimDownButton.update();
-  
+
   if (illuminationDimUpButton.isPressed() || illuminationDimUpButton.wasHeldFor(500, 200)) {
     desiredIlluminationLevel = min(255, (desiredIlluminationLevel + 0xFF / 16));
   }
   if (illuminationDimDownButton.isPressed() || illuminationDimDownButton.wasHeldFor(500, 200)) {
     desiredIlluminationLevel = max(46, (desiredIlluminationLevel - 0xFF / 16));
-  }  
+  }
 
   changeIllumination(illuminationSensor.getState(), desiredIlluminationLevel);
 }
 
 void changeIllumination(bool newState, uint8_t newLevel) {
-  newLevel = newState ? newLevel : 0x00; 
+  newLevel = newState ? newLevel : 0x00;
   if (illuminationState != newState || illuminationLevel != newLevel) {
     illuminationState = newState;
     illuminationLevel = newLevel;
-    
+
     Serial.printf("Illumination %d.\r\n", illuminationLevel);
     illuminationOutput.set(illuminationLevel);
     mmi.setIllumination(illuminationLevel);
@@ -390,140 +361,11 @@ void changeIllumination(bool newState, uint8_t newLevel) {
 }
 
 
-  ////////////////////////
- // IGNITION FUNCTIONS // 
-////////////////////////
-
-void updateIgnition() {
-  ignitionLights.red->update();
-  ignitionLights.green->update();
-  ignitionButton.update();
-  crankSensor.update();
-  ignitionOutputs.crank->update();
-  
-  neutralSensor.getState();
-  bool isClutchPressed  = clutchSensor.getState();
-  bool isBrakePressed   = brakeSensor.getState();
-  bool isKeyInserted    = keySensor.getState();
-
-  // key signal
-  ignitionOutputs.key->toggle(isKeyInserted || ignition.state >= IGNITION_ON);
-
-  // ignition button
-  if (!ignition.engine) {  
-    if (ignitionButton.isPressed() && isKeyInserted) {
-      // switch engine on
-      if (isClutchPressed) {
-        startEngine();
-      }
-      // toggle through ignition states
-      else {
-        setIgnition(ignition.state >= IGNITION_ON ? IGNITION_OFF : ignition.state+1);
-      }
-    }
-  }
-  else {
-    if ((ignitionButton.isPressed() && isBrakePressed) || ignitionButton.wasHeldFor(ENGINE_BUTTON_STOP_DURATION)) {
-      stopEngine();
-    }
-  }
-  
-  // ignition light
-  if (ignition.engine) {
-    if (crankSensor.isHeld()) {
-      setIgnitionLight(3, 100, 50);
-    }
-    else {
-      setIgnitionLight(2, 0, 0);
-    }
-  }
-  else if (isKeyInserted) {
-    if (isClutchPressed) {
-      setIgnitionLight(2, 1000, 100);
-    }
-    else {
-      if (ignition.state >= IGNITION_ACC) {
-        setIgnitionLight(1, 0, 0);
-      }
-      else {
-        setIgnitionLight(1, 2000, 100);
-      }
-    }
-  }
-  else if (bcm.areDoorsUnlocked()) {
-    setIgnitionLight(1, 0, 0);
-  }
-  else {
-    setIgnitionLight(0, 0, 0);
-  }
-
-  // reenable ACC after crank has stopped
-  if (crankSensor.wasPressedTimes(1)) {
-    ignitionOutputs.acc->toggle(ignition.state >= IGNITION_ACC);
-  }
-}
-
-void setIgnitionLight(uint8_t newState, unsigned int interval, unsigned int duration) {
-  if (newState != ignitionLights.state || ignitionLights.red->getInterval() != interval || ignitionLights.green->getDuration() != duration) {
-    if (newState == 0) {
-      ignitionLights.red->deactivate();
-      ignitionLights.green->deactivate();
-    }
-    if (newState == 1) {
-      ignitionLights.red->blink(interval, duration);
-      ignitionLights.green->deactivate();
-    }
-    if (newState == 2) {
-      ignitionLights.red->deactivate();
-      ignitionLights.green->blink(interval, duration);
-    }
-    if (newState == 3) {
-      ignitionLights.red->blink(interval, duration);
-      ignitionLights.green->blink(interval, duration);
-    }
-    ignitionLights.state = newState;
-  }
-}
-
-void setIgnition(uint8_t newState) {
-  if (ignition.state != newState) {
-    ignition.state = newState;
-
-    ignitionOutputs.acc->toggle(ignition.state >= IGNITION_ACC && !ignitionOutputs.crank->isActive());
-    ignitionLights.acc->toggle(ignition.state == IGNITION_ACC);
-    ignitionLights.nats->toggle(ignition.state >= IGNITION_ACC);
-
-    ignitionOutputs.nats->toggle(ignition.state >= IGNITION_ON);
-    ignitionOutputs.on->toggle(ignition.state >= IGNITION_ON);
-    ignitionLights.on->toggle(ignition.state >= IGNITION_ON);
-    Serial.printf("Ignition: %d.\r\n", ignition.state);
-  }
-}
-
-void stopEngine() {
-  if (ignition.engine) {
-    setIgnition(IGNITION_OFF);
-    ignition.engine = false;
-    Serial.println("Stop engine!");
-  }
-}
-
-void startEngine() {
-  if (!ignition.engine && (clutchSensor.getState() || neutralSensor.getState())) {
-    setIgnition(IGNITION_ON);
-    ignition.engine = true;
-    ignitionOutputs.acc->deactivate();
-    ignitionOutputs.crank->set(HIGH, CRANK_DURATION);
-    Serial.println("Start engine!");
-  }
-}
-
-
   ////////////////////////////////
  // HEADLIGHT WASHER FUNCTIONS //
 ////////////////////////////////
 
-void updateHeadlightWasher(){
+void updateHeadlightWasher() {
   headlightWasherButton.update();
   headlightWasherRelay.update();
 
@@ -571,7 +413,7 @@ void updateSwc() {
     Keyboard.release(KEY_MEDIA_NEXT_TRACK);
   }
 }
- 
+
 
   ///////////////////
  // BCM FUNCTIONS //
@@ -579,11 +421,11 @@ void updateSwc() {
 
 void updateBcm(Button *lockButton, Button *unlockButton, Bcm *bcm) {
   acm.setHub(keySensor.getState());
-  
+
   if (unlockButton->wasPressedTimes(1)) {
     acm.setOtg(true);
     sleep.cancelSleepRequest();
-  } 
+  }
   else if (unlockButton->wasPressedTimes(3)) {
     bcm->openWindows();
   }
@@ -591,7 +433,7 @@ void updateBcm(Button *lockButton, Button *unlockButton, Bcm *bcm) {
   if (lockButton->wasPressedTimes(1)) {
     if (bcm->isAnyDoorOpen()) {
       bcm->unlockDoors();
-    } 
+    }
     else {
       if (!keySensor.getState()) {
         sleep.deepSleep();
@@ -609,7 +451,7 @@ void updateBcm(Button *lockButton, Button *unlockButton, Bcm *bcm) {
 
 
   ////////////////////
- // HVAC FUNCTIONS // 
+ // HVAC FUNCTIONS //
 ////////////////////
 
 void updateHvac() {
@@ -617,7 +459,7 @@ void updateHvac() {
 }
 
   /////////////////////
- // SLEEP FUNCTIONS // 
+ // SLEEP FUNCTIONS //
 /////////////////////
 
 void updateSleep() {
