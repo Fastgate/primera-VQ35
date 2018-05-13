@@ -92,14 +92,6 @@ Bcm bcm;
 Ecm ecm(&clutchSensor, &brakeSensor, &neutralSensor, &keySensor, &bcm);
 
 
-  //////////////////////////////////
- // HEADLIGHT WASHER DEFINITIONS //
-//////////////////////////////////
-
-Button headlightWasherButton(new DigitalInput(34, 20, HIGH, INPUT_PULLUP));
-TimedOutput headlightWasherRelay(new DigitalOutput(40));
-
-
   /////////////////////////////
  // STEERING WHEEL CONTROLS //
 /////////////////////////////
@@ -154,8 +146,6 @@ void loop() {
   updateIllumination();
 
   ecm.update();
-
-  updateHeadlightWasher();
 
   updateSwc();
 
@@ -338,23 +328,6 @@ void changeIllumination(bool newState, uint8_t newLevel) {
 }
 
 
-  ////////////////////////////////
- // HEADLIGHT WASHER FUNCTIONS //
-////////////////////////////////
-
-void updateHeadlightWasher() {
-  headlightWasherButton.update();
-  headlightWasherRelay.update();
-
-  if (illuminationSensor.getState()) {
-    if (headlightWasherButton.wasPressedTimes(1)) {
-      Serial.println("ScheinwerferWaschanlage aktiviert");
-      headlightWasherRelay.set(HIGH, 6000);
-    }
-  }
-}
-
-
   //////////////////////////////
  // STEERING WHEEL FUNCTIONS //
 //////////////////////////////
@@ -396,9 +369,15 @@ void updateSwc() {
  // BCM FUNCTIONS //
 ///////////////////
 
-void updateBcm(Button *lockButton, Button *unlockButton, Bcm *bcm) {
+void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm) {
   acm.setHub(keySensor.getState());
 
+  // headlight washer
+  if (illuminationSensor.getState() && headlightWasherButton->wasPressedTimes(1)) {
+    bcm->washHeadlights(1200);
+  }
+
+  // car remote unlock button
   if (unlockButton->wasPressedTimes(1)) {
     acm.setOtg(true);
     sleep.cancelSleepRequest();
@@ -407,6 +386,7 @@ void updateBcm(Button *lockButton, Button *unlockButton, Bcm *bcm) {
     bcm->openWindows();
   }
 
+  // car remote lock button
   if (lockButton->wasPressedTimes(1)) {
     if (bcm->isAnyDoorOpen()) {
       bcm->unlockDoors();
