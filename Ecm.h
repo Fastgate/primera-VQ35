@@ -179,16 +179,24 @@ class Ecm {
         this->acc->toggle(this->ignitionState >= IGNITION_ACC);
       }
 
-      if (this->engineDefrostTime > 0 && millis() - this->engineDefrostTime >= 10 * 60 * 1000) {
+      // defrost feature
+      if (isKeyInserted && this->isEngineDefrosting()) {
         this->stopEngineDefrost();
+      }
+      if (this->engineDefrostTime > 0 && millis() - this->engineDefrostTime >= DEFROST_DURATION) {
+        this->stopEngineDefrost();
+        if (!isKeyInserted) {
+          this->stopEngine();
+        }
       }
     }
     uint8_t IGNITION_OFF  = 0;
     uint8_t IGNITION_ACC  = 1;
     uint8_t IGNITION_ON   = 2;
-    
-    static const unsigned int CRANK_DURATION = 600;
-    static const unsigned int ENGINE_BUTTON_STOP_DURATION = 3000;
+
+    static const unsigned int DEFROST_DURATION            = 10 * 60 * 1000;
+    static const unsigned int CRANK_DURATION              = 600;
+    static const unsigned int ENGINE_BUTTON_STOP_DURATION = 3 * 1000;
   private:
     uint8_t ignitionState           = IGNITION_OFF;
     boolean engineRunning         = false;

@@ -445,7 +445,7 @@ void updateBcm(Button *lockButton, Button *unlockButton, Bcm *bcm) {
     bcm->closeWindows();
   }
   else if (lockButton->wasPressedTimesOrMore(4)) {
-    // TODO: Start engine for 10 minutes
+    ecm.startEngineDefrost();
   }
 }
 
