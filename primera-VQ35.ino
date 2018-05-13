@@ -1,4 +1,5 @@
 #include <SPI.h>
+#include <FlexCAN.h>
 #include <arduinoIO.h>
 #include <arduinoMmi.h>
 
@@ -121,6 +122,27 @@ SerialDataPacket<unsigned long> baudRateChange(0x65, 0x01);
 SerialReader serialReader(128);
 
 
+  /////////////////////////
+ // CAN BUS DEFINITIONS //
+/////////////////////////
+
+struct CanData {
+  union {
+    unsigned char data[4];
+    BitFieldMember<0, 32> canId;
+  } metaData;
+  uint8_t rxBuf[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+};
+
+SerialDataPacket<CanData> canSnifferPacket(0x62, 0x6d);
+
+boolean isCanSnifferActive = false;
+
+CAN_message_t canMessage;
+
+FlexCAN canBus(500000);
+
+
   //////////////////
  // SKETCH SETUP //
 //////////////////
@@ -154,6 +176,8 @@ void loop() {
   hvac.update();
   
   sleep.update();
+
+  updateCanSniffer();
 }
 
 
@@ -169,6 +193,12 @@ void readSerial(uint8_t type, uint8_t id, BinaryBuffer *payloadBuffer) {
   switch (type) {
     case 0x61:
       switch (id) {
+        case 0x0a: // start sniffer
+          startCanSniffer();
+          break;
+        case 0x0b: // stop sniffer
+          stopCanSniffer();
+          break;
         case 0x72: { // set baud rate
             BinaryData::LongResult result = payloadBuffer->readLong();
             if (result.state == BinaryData::OK) {
@@ -403,6 +433,39 @@ void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasher
   }
   else if (lockButton->wasPressedTimesOrMore(4) && !keySensor.getState()) {
     ecm.startEngineDefrost();
+  }
+}
+
+
+  ///////////////////////
+ // CAN BUS FUNCTIONS //
+///////////////////////
+
+void startCanSniffer() {
+  canBus.begin();
+  isCanSnifferActive = true;
+}
+
+void stopCanSniffer() {
+  canBus.end();
+  isCanSnifferActive = false;
+}
+
+void updateCanSniffer() {
+  if (!isCanSnifferActive) {
+    return;
+  }
+  
+  while (canBus.read(canMessage)) {
+    canSnifferPacket.payload()->metaData.canId = canMessage.id;
+    for (uint8_t i = 0; i < 8; i++) {
+      uint8_t data = 0x00;
+      if (i < canMessage.len) {
+         data = canMessage.buf[i];
+      }
+      canSnifferPacket.payload()->rxBuf[i] = data;
+    }
+    canSnifferPacket.serialize(Serial);
   }
 }
 
