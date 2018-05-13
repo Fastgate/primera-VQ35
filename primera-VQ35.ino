@@ -401,7 +401,7 @@ void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasher
   else if (lockButton->wasPressedTimes(3)) {
     bcm->closeWindows();
   }
-  else if (lockButton->wasPressedTimesOrMore(4)) {
+  else if (lockButton->wasPressedTimesOrMore(4) && !keySensor.getState()) {
     ecm.startEngineDefrost();
   }
 }
