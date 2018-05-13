@@ -76,22 +76,19 @@ uint8_t illuminationLevel = 0x00;
 bool illuminationState = false;
 
 
-  /////////////////////
- // BCM DEFINITIONS //
-/////////////////////
-
-Bcm bcm;
-
-
-  //////////////////////////
- // IGNITION DEFINITIONS //
-//////////////////////////
+  ////////////////////////////
+ // CAR MODULE DEFINITIONS //
+////////////////////////////
 
 DigitalInput clutchSensor(16, 20, HIGH, INPUT);
 DigitalInput brakeSensor(17, 20, HIGH, INPUT);
 DigitalInput neutralSensor(36, 20, HIGH, INPUT);
 DigitalInput keySensor(6, 20, HIGH, INPUT);
 
+Sleep sleep(13, 10 * 60 * 1000);
+Acm acm;
+Hvac hvac;
+Bcm bcm;
 Ecm ecm(&clutchSensor, &brakeSensor, &neutralSensor, &keySensor, &bcm);
 
 
@@ -119,27 +116,6 @@ Button swcSeekDownButton(new AnalogInput(A10, 15, 20), 0);
 
 int RevGear = 38;           // Rückwärtsgang  OK
 int RevGear_Stat = 0;
-
-
-  ///////////////////////
- // SLEEP DEFINITIONS //
-///////////////////////
-
-Sleep sleep(13, 10 * 60 * 1000);
-
-
-  /////////////////////
- // ACM DEFINITIONS //
-/////////////////////
-
-Acm acm;
-
-
-  //////////////////////
- // HVAC DEFINITIONS //
-//////////////////////
-
-Hvac hvac;
 
 
   ////////////////////////
@@ -174,6 +150,7 @@ void setup() {
 
 void loop() {
   updateMmi();
+  
   updateIllumination();
 
   ecm.update();
@@ -184,9 +161,9 @@ void loop() {
 
   bcm.update(updateBcm);
 
-  updateHvac();
-
-  updateSleep();
+  hvac.update();
+  
+  sleep.update();
 }
 
 
@@ -449,19 +426,3 @@ void updateBcm(Button *lockButton, Button *unlockButton, Bcm *bcm) {
   }
 }
 
-
-  ////////////////////
- // HVAC FUNCTIONS //
-////////////////////
-
-void updateHvac() {
-  hvac.update();
-}
-
-  /////////////////////
- // SLEEP FUNCTIONS //
-/////////////////////
-
-void updateSleep() {
-  sleep.update();
-}
