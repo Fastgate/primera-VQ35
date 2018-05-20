@@ -50,7 +50,7 @@ class Bcm {
     }
   private:
     Button *lockButton        = new Button(new DigitalInput(22),700);
-    Button *unlockButton      = new Button(new DigitalInput(23),700);
+    Button *unlockButton      = new Button(new DigitalInput(6),700);
     TimedOutput *lockRelay    = new TimedOutput(new DigitalOutput(27, HIGH));
     TimedOutput *unlockRelay  = new TimedOutput(new DigitalOutput(28, HIGH));
 

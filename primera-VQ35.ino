@@ -84,7 +84,7 @@ bool illuminationState = false;
 DigitalInput clutchSensor(16, 20, HIGH, INPUT);
 DigitalInput brakeSensor(17, 20, HIGH, INPUT);
 DigitalInput neutralSensor(36, 20, HIGH, INPUT);
-DigitalInput keySensor(6, 20, HIGH, INPUT);
+DigitalInput keySensor(23, 20, HIGH, INPUT);
 
 Sleep sleep(13, 10 * 60 * 1000);
 Acm acm;
@@ -139,8 +139,6 @@ SerialDataPacket<CanData> canSnifferPacket(0x62, 0x6d);
 boolean isCanSnifferActive = false;
 
 CAN_message_t canMessage;
-
-FlexCAN canBus(500000);
 
 
   //////////////////
@@ -442,12 +440,12 @@ void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasher
 ///////////////////////
 
 void startCanSniffer() {
-  canBus.begin();
+  Can0.begin(500000);
   isCanSnifferActive = true;
 }
 
 void stopCanSniffer() {
-  canBus.end();
+  Can0.end();
   isCanSnifferActive = false;
 }
 
@@ -456,7 +454,8 @@ void updateCanSniffer() {
     return;
   }
   
-  while (canBus.read(canMessage)) {
+  while (Can0.available()) {
+    Can0.read(canMessage);
     canSnifferPacket.payload()->metaData.canId = canMessage.id;
     for (uint8_t i = 0; i < 8; i++) {
       uint8_t data = 0x00;
