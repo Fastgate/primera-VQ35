@@ -130,6 +130,7 @@ SerialReader serialReader(128);
 CanSniffer canSniffer;
 
 CanInput handbrakeSensor(0x06F1, 4, B00010000);
+CanInput headlightSensor(0x060D, 0, B00000010);
 
 
   //////////////////
@@ -394,7 +395,7 @@ void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasher
   acm.setHub(keySensor.getState());
 
   // headlight washer
-  if (illuminationSensor.getState() && headlightWasherButton->wasPressedTimes(1)) {
+  if (headlightSensor.getState() && headlightWasherButton->wasPressedTimes(1)) {
     bcm->washHeadlights(1200);
   }
 
@@ -439,6 +440,7 @@ void updateCan() {
     canSniffer.update(canMessage);
 
     handbrakeSensor.update(canMessage);
+    headlightSensor.update(canMessage);
   }
   
   Serial.println(handbrakeSensor.getState());
