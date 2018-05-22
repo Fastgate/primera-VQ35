@@ -7,6 +7,7 @@
 #include "Serial.h"
 #include "Hvac.h"
 #include "Sleep.h"
+#include "Can.h"
 
 #include "Acm.h"
 #include "Bcm.h"
@@ -126,20 +127,9 @@ SerialReader serialReader(128);
  // CAN BUS DEFINITIONS //
 /////////////////////////
 
-struct CanData {
-  union {
-    unsigned char data[4];
-    BitFieldMember<0, 32> canId;
-  } metaData;
-  uint8_t rxBuf[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-};
+CanSniffer canSniffer;
 
-SerialDataPacket<CanData> canSnifferPacket(0x62, 0x6d);
-
-boolean isCanSnifferActive = false;
-
-CAN_message_t canMessage;
-
+CanInput handbrakeSensor(0x06F1, 4, B00010000);
 
   //////////////////
  // SKETCH SETUP //
@@ -153,6 +143,8 @@ void setup() {
 
   pinMode(RevGear, INPUT_PULLUP);
   digitalWrite(RevGear, HIGH);
+
+  Can0.begin(500000);
 }
 
 
@@ -161,6 +153,8 @@ void setup() {
 /////////////////
 
 void loop() {
+  updateCan();
+  
   updateMmi();
   
   updateIllumination();
@@ -174,8 +168,6 @@ void loop() {
   hvac.update();
   
   sleep.update();
-
-  updateCanSniffer();
 }
 
 
@@ -192,10 +184,10 @@ void readSerial(uint8_t type, uint8_t id, BinaryBuffer *payloadBuffer) {
     case 0x61:
       switch (id) {
         case 0x0a: // start sniffer
-          startCanSniffer();
+          canSniffer.toggle(true);
           break;
         case 0x0b: // stop sniffer
-          stopCanSniffer();
+          canSniffer.toggle(false);
           break;
         case 0x72: { // set baud rate
             BinaryData::LongResult result = payloadBuffer->readLong();
@@ -439,32 +431,15 @@ void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasher
  // CAN BUS FUNCTIONS //
 ///////////////////////
 
-void startCanSniffer() {
-  Can0.begin(500000);
-  isCanSnifferActive = true;
-}
-
-void stopCanSniffer() {
-  Can0.end();
-  isCanSnifferActive = false;
-}
-
-void updateCanSniffer() {
-  if (!isCanSnifferActive) {
-    return;
-  }
-  
+void updateCan() { 
+  CAN_message_t canMessage;
   while (Can0.available()) {
     Can0.read(canMessage);
-    canSnifferPacket.payload()->metaData.canId = canMessage.id;
-    for (uint8_t i = 0; i < 8; i++) {
-      uint8_t data = 0x00;
-      if (i < canMessage.len) {
-         data = canMessage.buf[i];
-      }
-      canSnifferPacket.payload()->rxBuf[i] = data;
-    }
-    canSnifferPacket.serialize(Serial);
+    canSniffer.update(canMessage);
+
+    handbrakeSensor.update(canMessage);
   }
+  
+  Serial.println(handbrakeSensor.getState());
 }
 
