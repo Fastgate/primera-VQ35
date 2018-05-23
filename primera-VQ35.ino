@@ -129,8 +129,9 @@ SerialReader serialReader(128);
 
 CanSniffer canSniffer;
 
-CanInput handbrakeSensor(0x06F1, 4, B00010000);
-CanInput headlightSensor(0x060D, 0, B00000010);
+CanInput handbrakeSensor    (0x06F1, 4, B00010000);
+CanInput headlightSensor    (0x060D, 0, B00000010);
+CanInput runningLightSensor (0x060D, 0, B00000100);
 
 
   //////////////////
@@ -333,7 +334,7 @@ void updateIllumination() {
     desiredIlluminationLevel = max(46, (desiredIlluminationLevel - 0xFF / 16));
   }
 
-  changeIllumination(illuminationSensor.getState(), desiredIlluminationLevel);
+  changeIllumination(runningLightSensor.getState(), desiredIlluminationLevel);
 }
 
 void changeIllumination(bool newState, uint8_t newLevel) {
@@ -435,12 +436,15 @@ void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasher
 
 void updateCan() { 
   CAN_message_t canMessage;
+  CAN_message_t canMessageSend;
   while (Can0.available()) {
     Can0.read(canMessage);
     canSniffer.update(canMessage);
+    Can0.write(canMessageSend);
 
     handbrakeSensor.update(canMessage);
     headlightSensor.update(canMessage);
+    runningLightSensor.update(canMessage);
   }
   
   Serial.println(handbrakeSensor.getState());
