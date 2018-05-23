@@ -128,6 +128,7 @@ SerialReader serialReader(128);
 /////////////////////////
 
 CanSniffer canSniffer;
+Obd2Helper obd2;
 
 CanInput handbrakeSensor    (0x06F1, 4, B00010000);
 CanInput headlightSensor    (0x060D, 0, B00000010);
@@ -148,6 +149,8 @@ void setup() {
   digitalWrite(RevGear, HIGH);
 
   Can0.begin(500000);
+
+  obd2.sendRequest(8, 23);
 }
 
 
@@ -436,11 +439,10 @@ void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasher
 
 void updateCan() { 
   CAN_message_t canMessage;
-  CAN_message_t canMessageSend;
+ 
   while (Can0.available()) {
     Can0.read(canMessage);
     canSniffer.update(canMessage);
-    Can0.write(canMessageSend);
 
     handbrakeSensor.update(canMessage);
     headlightSensor.update(canMessage);

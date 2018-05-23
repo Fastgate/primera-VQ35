@@ -34,6 +34,18 @@ class CanInput : public Input {
     boolean state       = false;
 };
 
+class Obd2Helper {
+  public:
+  void sendRequest(uint8_t mode, uint8_t pid) {
+     CAN_message_t requestMessage;
+     requestMessage.id = 0x7DF;
+     requestMessage.buf[0] = 2;
+     requestMessage.buf[1] = mode;
+     requestMessage.buf[2] = pid;
+     Can0.write(canMessageSend);
+  }
+}
+
 class CanSniffer {
   public:
     CanSniffer() {
