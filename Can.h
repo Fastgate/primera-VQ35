@@ -42,9 +42,9 @@ class Obd2Helper {
      requestMessage.buf[0] = 2;
      requestMessage.buf[1] = mode;
      requestMessage.buf[2] = pid;
-     Can0.write(canMessageSend);
+     Can0.write(requestMessage);
   }
-}
+};
 
 class CanSniffer {
   public:
