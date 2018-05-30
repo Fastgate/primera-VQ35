@@ -5,9 +5,9 @@
 #include "bitfield.h"
 
 union ClimateControl {
-  unsigned char data[3];
+  unsigned char data[4];
   BitFieldMember<0, 1> isAcOn;
-  BitFieldMember<1, 1> isAuto;
+  BitFieldMember<1, 1> isAutoFan;
   BitFieldMember<2, 1> isAirductWindshield;
   BitFieldMember<3, 1> isAirductFace;
   BitFieldMember<4, 1> isAirductFeet;
@@ -16,13 +16,14 @@ union ClimateControl {
   BitFieldMember<7, 1> isRecirculation;
   BitFieldMember<8, 8> fanLevel;
   BitFieldMember<16, 8> desiredTemperature;
+  BitFieldMember<24, 1> isAirductAuto;
 };
 
 class Hvac {
 public:
   Hvac() {
     this->climateControl->payload()->isAcOn               = false;
-    this->climateControl->payload()->isAuto               = false;
+    this->climateControl->payload()->isAutoFan            = false;
     this->climateControl->payload()->isAirductWindshield  = false;
     this->climateControl->payload()->isAirductFace        = false;
     this->climateControl->payload()->isAirductFeet        = false;
@@ -31,6 +32,7 @@ public:
     this->climateControl->payload()->isRecirculation      = false;
     this->climateControl->payload()->fanLevel             = 0;
     this->climateControl->payload()->desiredTemperature   = 21 * 2;
+    this->climateControl->payload()->isAirductAuto        = false;
 
     SPI.begin();
 
@@ -62,20 +64,35 @@ public:
   void toggleRecirculation() {
     this->recirculationButton->set(HIGH, ButtonPressDuration);
   }
-  void toggleAutomatic() {
-    this->setAutomatic(!this->climateControl->payload()->isAuto);
+  void toggleAutomaticFan() {
+    this->setAutomaticFan(!this->climateControl->payload()->isAutoFan);
+  }
+  void toggleAutomaticDuct() {
+    this->setAutomaticDuct(!this->climateControl->payload()->isAirductAuto);
   }
 
-  void setAutomatic(boolean state) {
+  void setAutomaticFan(boolean state) {
     if (state) {
       this->setFanLevel(1);
-      this->setAirduct(0);      
+      //this->setAirduct(0);      
     } 
     else {
       this->setFanLevel(this->manualFanSetting);
+      //this->setAirduct(this->manualAirductSetting);
+    }
+    this->climateControl->payload()->isAutoFan = state;
+  }
+
+  void setAutomaticDuct(boolean state) {
+    if (state) {
+      //this->setFanLevel(1);
+      this->setAirduct(0);      
+    } 
+    else {
+      //this->setFanLevel(this->manualFanSetting);
       this->setAirduct(this->manualAirductSetting);
     }
-    this->climateControl->payload()->isAuto = state;
+    this->climateControl->payload()->isAirductAuto = state;
   }
   void toggleDefrost() {
     setDefrost(this->airductSetting != AirductModeCount - 1);
@@ -178,8 +195,8 @@ public:
   void write(uint8_t buttonId, BinaryBuffer *payloadBuffer) {
     switch (buttonId) {
       case 0x01: // OFF BUTTON
-        if (this->climateControl->payload()->isAuto) {
-          this->setAutomatic(false);
+        if (this->climateControl->payload()->isAutoFan) {
+          this->setAutomaticFan(false);
         }
         this->setFanLevel(0);
         break;
@@ -187,14 +204,14 @@ public:
         this->toggleAirCondition();
         break;
       case 0x03: // auto button
-        this->toggleAutomatic();
+        this->toggleAutomaticFan();
         break;
       case 0x04: // recirculation button
         this->toggleRecirculation();
         break;
       case 0x05: // windshield heating button
-        if (this->climateControl->payload()->isAuto) {
-          this->setAutomatic(false);
+        if (this->climateControl->payload()->isAirductAuto) {
+          this->setAutomaticDuct(false);
         }
         this->toggleDefrost();
         break;
@@ -202,8 +219,8 @@ public:
         this->toggleRearHeater();
         break;
       case 0x07: // mode button
-        if (this->climateControl->payload()->isAuto) {
-          this->setAutomatic(false);
+        if (this->climateControl->payload()->isAirductAuto) {
+          this->setAutomaticDuct(false);
         }
         this->toggleAirduct();
         break;
@@ -214,11 +231,14 @@ public:
         break;
       case 0x09: // fan level
         if (payloadBuffer->available() > 0) {
-          if (this->climateControl->payload()->isAuto) {
-            this->setAutomatic(false);
+          if (this->climateControl->payload()->isAutoFan) {
+            this->setAutomaticFan(false);
           }
           this->setFanLevel(payloadBuffer->readByte().data + 1);
         }
+        break;
+      case 0x10: // auto button
+        this->toggleAutomaticDuct();
         break;
     }
   }
@@ -249,10 +269,10 @@ private:
   TimedOutput *recirculationButton  = new TimedOutput(new DigitalOutput(26));
   TimedOutput *airConditionButton   = new TimedOutput(new DigitalOutput(25));
  
-  DigitalInput *rearHeaterLed    = new DigitalInput(32, 20, LOW, INPUT_PULLUP);
-  DigitalInput *freshAirLed      = new DigitalInput(31, 20, LOW, INPUT_PULLUP);
-  DigitalInput *recirculationLed = new DigitalInput(29, 20, LOW, INPUT_PULLUP);
-  DigitalInput *airConditionLed  = new DigitalInput(47, 20, LOW, INPUT_PULLUP);
+  DigitalInput *rearHeaterLed    = new DigitalInput(32, 20, LOW, INPUT);
+  DigitalInput *freshAirLed      = new DigitalInput(31, 20, LOW, INPUT);
+  DigitalInput *recirculationLed = new DigitalInput(29, 20, LOW, INPUT);
+  DigitalInput *airConditionLed  = new DigitalInput(47, 20, LOW, INPUT);
  
   const unsigned int ButtonPressDuration = 300;
 
