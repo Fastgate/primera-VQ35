@@ -7,7 +7,7 @@
 union ClimateControl {
   unsigned char data[4];
   BitFieldMember<0, 1> isAcOn;
-  BitFieldMember<1, 1> isAutoFan;
+  BitFieldMember<1, 1> isAirductAuto;
   BitFieldMember<2, 1> isAirductWindshield;
   BitFieldMember<3, 1> isAirductFace;
   BitFieldMember<4, 1> isAirductFeet;
@@ -16,7 +16,7 @@ union ClimateControl {
   BitFieldMember<7, 1> isRecirculation;
   BitFieldMember<8, 8> fanLevel;
   BitFieldMember<16, 8> desiredTemperature;
-  BitFieldMember<24, 1> isAirductAuto;
+  BitFieldMember<24, 1> isAutoFan;
 };
 
 class Hvac {
@@ -204,7 +204,7 @@ public:
         this->toggleAirCondition();
         break;
       case 0x03: // auto button
-        this->toggleAutomaticFan();
+        this->toggleAutomaticDuct();
         break;
       case 0x04: // recirculation button
         this->toggleRecirculation();
@@ -238,7 +238,7 @@ public:
         }
         break;
       case 0x10: // auto button
-        this->toggleAutomaticDuct();
+        this->toggleAutomaticFan();
         break;
     }
   }
@@ -246,7 +246,7 @@ private:
   void setDial(DigitalOutput *select, float voltage) {
     select->activate();
     SPI.transfer(0);
-    SPI.transfer((int)roundf(voltage / 5.18 * 256 - 1));
+    SPI.transfer((int)roundf(voltage / 4.96 * 256 - 1));
     select->deactivate();
   }
 

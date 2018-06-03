@@ -145,6 +145,16 @@ class Ecm {
         }
       }
 
+      if (this->ignitionButton->isPressed() && isKeyInserted) {
+         Keyboard.press(KEY_SYSTEM_WAKE_UP);  
+         Keyboard.release(KEY_SYSTEM_WAKE_UP);
+        }else {
+          if(!isKeyInserted){
+            Keyboard.press(KEY_SYSTEM_POWER_DOWN);   // ENGINE_BUTTON
+            Keyboard.release(KEY_SYSTEM_POWER_DOWN);
+            }
+          }
+
       // ignition light
       if (this->engineRunning) {
         if (this->crankSensor->isHeld()) {

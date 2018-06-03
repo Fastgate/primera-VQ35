@@ -13,6 +13,8 @@
 #include "Bcm.h"
 #include "Ecm.h"
 
+
+
   /////////////
  // HELPERS //
 /////////////
@@ -24,6 +26,9 @@
   /////////////////////
  // MMI DEFINITIONS //
 /////////////////////
+
+SerialDataPacket<uint8_t> _MmiAndroidPacket(0x73, 0x72);
+
 
 // Buttons
 Mmi mmi(&Serial3, SERIAL_8N2_RXINV, 16, 17, 2);
@@ -68,9 +73,9 @@ MmiLight mmiRadioLight(0x18, &mmi);
  // ILLUMINATION DEFINITIONS //
 //////////////////////////////
 
-DigitalInput illuminationSensor(37, 20, LOW, INPUT_PULLUP);
-Button illuminationDimUpButton(new DigitalInput(45, 20, LOW, INPUT_PULLUP), 0);
-Button illuminationDimDownButton(new DigitalInput(46, 20, LOW, INPUT_PULLUP), 0);
+DigitalInput illuminationSensor(37, 20, LOW, INPUT);
+Button illuminationDimUpButton(new DigitalInput(45, 20, LOW, INPUT), 0);
+Button illuminationDimDownButton(new DigitalInput(46, 20, LOW, INPUT), 0);
 AnalogOutput illuminationOutput(21);
 
 uint8_t desiredIlluminationLevel = 0xFF / 2;
@@ -131,8 +136,8 @@ CanSniffer canSniffer;
 Obd2Helper obd2;
 
 CanInput handbrakeSensor    (0x06F1, 4, B00010000);
-CanInput headlightSensor    (0x060D, 0, B00000010);
-CanInput runningLightSensor (0x060D, 0, B00000100);
+CanInput headlightSensor    (0x060D, 0, B00001110);
+CanInput runningLightSensor (0x060D, 0, B00001100);
 
 
   //////////////////
@@ -224,18 +229,27 @@ void readSerial(uint8_t type, uint8_t id, BinaryBuffer *payloadBuffer) {
 
 void updateMmi() {
   mmi.update(mmiEvent);
-
+  
+  
   if (mmiNavButton->wasPressedTimes(1)) {
     mmiNavLight.toggle();
+    _MmiAndroidPacket.payload(1);
+    _MmiAndroidPacket.serialize(Serial);
   }
   if (mmiInfoButton->wasPressedTimes(1)) {
     mmiInfoLight.toggle();
+    _MmiAndroidPacket.payload(2);
+    _MmiAndroidPacket.serialize(Serial);
   }
   if (mmiCarButton->wasPressedTimes(1)) {
     mmiCarLight.toggle();
+    _MmiAndroidPacket.payload(3);
+    _MmiAndroidPacket.serialize(Serial);
   }
   if (mmiSetupButton->wasPressedTimes(1)) {
     mmiSetupLight.toggle();
+    _MmiAndroidPacket.payload(4);
+    _MmiAndroidPacket.serialize(Serial);
   }
   if (mmiRadioButton->wasPressedTimes(1)) {
     mmiRadioLight.toggle();
@@ -291,8 +305,10 @@ void updateMmi() {
     }
   }
   if (mmiBigWheelButton->wasPressedTimes(1)) {
-    Keyboard.press(KEY_MEDIA_PLAY_PAUSE);
-    Keyboard.release(KEY_MEDIA_PLAY_PAUSE);
+      Keyboard.press(KEY_MEDIA_PLAY_PAUSE);
+      Keyboard.release(KEY_MEDIA_PLAY_PAUSE);
+      Keyboard.press(KEY_ENTER);
+      Keyboard.release(KEY_ENTER);
   }
 
   if (mmiSmallWheel->wasTurned()) {
@@ -337,7 +353,7 @@ void updateIllumination() {
     desiredIlluminationLevel = max(46, (desiredIlluminationLevel - 0xFF / 16));
   }
 
-  changeIllumination(runningLightSensor.getState(), desiredIlluminationLevel);
+  changeIllumination(illuminationSensor.getState(), desiredIlluminationLevel);
 }
 
 void changeIllumination(bool newState, uint8_t newLevel) {
