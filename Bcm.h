@@ -17,16 +17,18 @@ class Bcm {
       return this->isDriverDoorOpen() || this->isPassengerDoorOpen() || this->isBackDoorOpen();
     }
     boolean areDoorsLocked() {
-      return unlockRelay->getState() == HIGH;
+      return this->isLocked;
     }
     boolean areDoorsUnlocked() {
-      return !this->areDoorsLocked();
+      return !this->isLocked;
     }
     void lockDoors() {
       this->lockRelay->set(HIGH, 100);
+      this->isLocked = true;
     }
     void unlockDoors() {
       this->unlockRelay->set(HIGH, 100);
+      this->isLocked = false;
     }
     void openWindows() {
       this->unlockRelay->set(HIGH, 4000);
@@ -46,11 +48,20 @@ class Bcm {
       this->headlightWasherButton->update();
       this->headlightWasherRelay->update();
 
+      if (this->lockButton->wasPressedTimesOrMore(1)) {
+        this->isLocked = true;
+      } 
+      if (this->unlockButton->wasPressedTimesOrMore(1)) {
+        this->isLocked = false;
+      }
+
       bcmCallback(this->lockButton, this->unlockButton, this->headlightWasherButton, this);
     }
   private:
-    Button *lockButton        = new Button(new DigitalInput(22),700);
-    Button *unlockButton      = new Button(new DigitalInput(6),700);
+    boolean isLocked          = false;
+  
+    Button *lockButton        = new Button(new DigitalInput(22), 700);
+    Button *unlockButton      = new Button(new DigitalInput(23), 700);
     TimedOutput *lockRelay    = new TimedOutput(new DigitalOutput(27, HIGH));
     TimedOutput *unlockRelay  = new TimedOutput(new DigitalOutput(28, HIGH));
 
