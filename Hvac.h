@@ -37,8 +37,8 @@ public:
     SPI.begin();
 
     this->setAirduct(1);
-    this->setFanLevel(10);
-    this->setTemperature(21);
+    this->setFanLevel(2);
+    this->setTemperature(18);
   }
   void update() {
     this->rearHeaterButton->update();

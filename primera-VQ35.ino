@@ -67,6 +67,7 @@ MmiLight mmiBottomLeftLight(0x0B, &mmi);
 MmiLight mmiTopRightLight(0x0D, &mmi);
 MmiLight mmiBottomRightLight(0x0E, &mmi);
 MmiLight mmiRadioLight(0x18, &mmi);
+MmiLight mmiAllOff (0xFF, &mmi);
 
 
   //////////////////////////////
@@ -90,7 +91,7 @@ bool illuminationState = false;
 DigitalInput clutchSensor(16, 20, HIGH, INPUT);
 DigitalInput brakeSensor(17, 20, HIGH, INPUT);
 DigitalInput neutralSensor(36, 20, HIGH, INPUT);
-DigitalInput keySensor(23, 20, HIGH, INPUT);
+DigitalInput keySensor(6, 20, HIGH, INPUT_PULLUP);
 
 Sleep sleep(13, 10 * 60 * 1000);
 Acm acm;
@@ -138,6 +139,7 @@ Obd2Helper obd2;
 CanInput handbrakeSensor    (0x06F1, 4, B00010000);
 CanInput headlightSensor    (0x060D, 0, B00001110);
 CanInput runningLightSensor (0x060D, 0, B00001100);
+CanInput DriverDoorSensor   (0x060D, 4, B00010000);
 
 
   //////////////////
@@ -155,7 +157,7 @@ void setup() {
 
   Can0.begin(500000);
 
-  obd2.sendRequest(8, 23);
+  //obd2.sendRequest(8, 23);
 }
 
 
@@ -232,64 +234,109 @@ void updateMmi() {
   
   
   if (mmiNavButton->wasPressedTimes(1)) {
-    mmiNavLight.toggle();
-    _MmiAndroidPacket.payload(1);
-    _MmiAndroidPacket.serialize(Serial);
+     mmiAllOff.off();
+     mmiNavLight.on();
+     _MmiAndroidPacket.payload(1);
+     _MmiAndroidPacket.serialize(Serial);
   }
   if (mmiInfoButton->wasPressedTimes(1)) {
-    mmiInfoLight.toggle();
-    _MmiAndroidPacket.payload(2);
-    _MmiAndroidPacket.serialize(Serial);
+     mmiAllOff.off();
+     mmiInfoLight.on();
+     _MmiAndroidPacket.payload(2);
+     _MmiAndroidPacket.serialize(Serial);
+  }
+  if (mmiInfoButton->wasPressedFor(1000)) {
+     mmiAllOff.off();
+     mmiInfoLight.on();
+     _MmiAndroidPacket.payload(42);
+     _MmiAndroidPacket.serialize(Serial);
   }
   if (mmiCarButton->wasPressedTimes(1)) {
-    mmiCarLight.toggle();
-    _MmiAndroidPacket.payload(3);
-    _MmiAndroidPacket.serialize(Serial);
+     mmiAllOff.off();
+     mmiCarLight.on();
+     _MmiAndroidPacket.payload(3);
+     _MmiAndroidPacket.serialize(Serial);
   }
   if (mmiSetupButton->wasPressedTimes(1)) {
-    mmiSetupLight.toggle();
-    _MmiAndroidPacket.payload(4);
-    _MmiAndroidPacket.serialize(Serial);
+     mmiAllOff.off();
+     mmiSetupLight.on();   
+  }
+  if (mmiSetupButton->wasHeldFor(500)) {
+     mmiAllOff.off();
+     _MmiAndroidPacket.payload(4);
+     _MmiAndroidPacket.serialize(Serial);
   }
   if (mmiRadioButton->wasPressedTimes(1)) {
-    mmiRadioLight.toggle();
+     mmiAllOff.off();
+     mmiRadioLight.on();
   }
   if (mmiMediaButton->wasPressedTimes(1)) {
-    mmiMediaLight.toggle();
+      mmiAllOff.off();
+      mmiMediaLight.on();
+     _MmiAndroidPacket.payload(6);
+     _MmiAndroidPacket.serialize(Serial);
   }
+  if (mmiMediaButton->wasPressedTimes(1) && mmiSetupButton->wasPressedTimes(1)) {
+      mmiAllOff.off();
+      mmiMediaLight.on();
+     _MmiAndroidPacket.payload(20);
+     _MmiAndroidPacket.serialize(Serial);
+    }
   if (mmiNameButton->wasPressedTimes(1)) {
-    mmiNameLight.toggle();
+      mmiAllOff.off();
+      mmiNameLight.on();
+     _MmiAndroidPacket.payload(7);
+     _MmiAndroidPacket.serialize(Serial);
   }
   if (mmiTelButton->wasPressedTimes(1)) {
-    mmiTelLight.toggle();
+     mmiAllOff.off();
+     mmiTelLight.on();
   }
   if (mmiTopLeftButton->wasPressedTimes(1)) {
-    mmiTopLeftLight.toggle();
+     //mmiAllOff.off();
+     mmiTopLeftLight.toggle();
   }
   if (mmiTopRightButton->wasPressedTimes(1)) {
-    mmiTopRightLight.toggle();
+     mmiAllOff.off();
+     //mmiTopRightLight.toggle();
+      Keyboard.press(KEY_HOME); 
+     Keyboard.release(KEY_HOME); 
+     Keyboard.press(KEY_HOME); 
+     Keyboard.release(KEY_HOME); 
   }
   if (mmiBottomLeftButton->wasPressedTimes(1)) {
-    mmiBottomLeftLight.toggle();
+     mmiBottomLeftLight.toggle();
   }
   if (mmiBottomRightButton->wasPressedTimes(1)) {
-    mmiBottomRightLight.toggle();
+     mmiBottomRightLight.toggle();
   }
   if (mmiPreviousButton->wasPressedTimes(1)) {
-    Keyboard.press(KEY_MEDIA_PREV_TRACK);
-    Keyboard.release(KEY_MEDIA_PREV_TRACK);
+     Keyboard.press(KEY_MEDIA_PREV_TRACK);
+     Keyboard.release(KEY_MEDIA_PREV_TRACK);
+  }
+  if (mmiReturnButton->wasHeldFor(500))  {
+     Keyboard.press(KEY_BACKSPACE); 
+     Keyboard.release(KEY_BACKSPACE);
+     Keyboard.release(KEY_LEFT_ALT);
+  }
+
+  if (mmiReturnButton->wasPressedFor(1000))  {
+     Keyboard.press(KEY_DELETE); 
+     Keyboard.release(KEY_DELETE);
+     Keyboard.release(KEY_LEFT_ALT);
   }
   if (mmiReturnButton->wasPressedTimes(1)) {
-    Keyboard.press(KEY_ESC);
-    Keyboard.release(KEY_ESC);
+     Keyboard.press(KEY_ESC);
+     Keyboard.release(KEY_ESC);
+     Keyboard.release(KEY_LEFT_ALT);
   }
   if (mmiNextButton->wasPressedTimes(1)) {
-    Keyboard.press(KEY_MEDIA_NEXT_TRACK);
-    Keyboard.release(KEY_MEDIA_NEXT_TRACK);
+     Keyboard.press(KEY_MEDIA_NEXT_TRACK);
+     Keyboard.release(KEY_MEDIA_NEXT_TRACK);
   }
   if (mmiNextButton->wasPressedTimes(2)) {
-    Keyboard.press(KEY_MEDIA_PLAY_SKIP);
-    Keyboard.release(KEY_MEDIA_PLAY_SKIP);
+     Keyboard.press(KEY_MEDIA_PLAY_SKIP);
+     Keyboard.release(KEY_MEDIA_PLAY_SKIP);
   }
 
   if (mmiBigWheel->wasTurned()) {
@@ -306,9 +353,18 @@ void updateMmi() {
   }
   if (mmiBigWheelButton->wasPressedTimes(1)) {
       Keyboard.press(KEY_MEDIA_PLAY_PAUSE);
-      Keyboard.release(KEY_MEDIA_PLAY_PAUSE);
       Keyboard.press(KEY_ENTER);
+      Keyboard.release(KEY_MEDIA_PLAY_PAUSE);
       Keyboard.release(KEY_ENTER);
+      Keyboard.release(KEY_LEFT_ALT);
+  }
+  if (mmiBigWheelButton-> wasPressedFor(1000)) {
+     mmiAllOff.off();
+     Keyboard.press(KEY_LEFT_ALT);
+     Keyboard.press(KEY_TAB);
+     Keyboard.release(KEY_TAB);
+     
+    
   }
 
   if (mmiSmallWheel->wasTurned()) {
@@ -322,9 +378,16 @@ void updateMmi() {
     }
   }
   if (mmiSmallWheelButton->wasPressedTimes(1)) {
-    Keyboard.press(KEY_MEDIA_MUTE);
-    Keyboard.release(KEY_MEDIA_MUTE);
+     Keyboard.press(KEY_MEDIA_MUTE);
+     Keyboard.release(KEY_MEDIA_MUTE);
   }
+  if (mmiSmallWheelButton->wasHeldFor(1000)) {
+     mmiAllOff.off();
+     mmi.shutdown();
+  }else{
+    Keyboard.press(KEY_SYSTEM_WAKE_UP);  
+    Keyboard.release(KEY_SYSTEM_WAKE_UP);
+    }
 }
 
 void mmiEvent(uint8_t code) {
@@ -393,6 +456,12 @@ void updateSwc() {
   if (swcPhoneButton.wasPressedTimes(1)) {
     // TODO start the phone app
   }
+  if (swcPhoneButton.wasPressedTimes(1)) {
+    }
+  if (swcVoiceButton.wasHeldFor(500)) {
+    _MmiAndroidPacket.payload(42);
+    _MmiAndroidPacket.serialize(Serial);
+  }
   if (swcVoiceButton.wasPressedTimes(1)) {
     // TODO start google assistant
   }
@@ -415,7 +484,7 @@ void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasher
   acm.setHub(keySensor.getState());
 
   // headlight washer
-  if (headlightSensor.getState() && headlightWasherButton->wasPressedTimes(1)) {
+  if (illuminationSensor.getState() && headlightWasherButton->wasPressedTimes(1)) {
     bcm->washHeadlights(1200);
   }
 
@@ -424,14 +493,14 @@ void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasher
     acm.setOtg(true);
     sleep.cancelSleepRequest();
   }
-  else if (unlockButton->wasPressedTimes(3)) {
+  else if (unlockButton->wasPressedTimes(2)) {
     bcm->openWindows();
   }
 
   // car remote lock button
   if (lockButton->wasPressedTimes(1)) {
     if (bcm->isAnyDoorOpen()) {
-      bcm->unlockDoors();
+      //bcm->unlockDoors();
     }
     else {
       if (!keySensor.getState()) {
@@ -443,8 +512,9 @@ void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasher
   else if (lockButton->wasPressedTimes(3)) {
     bcm->closeWindows();
   }
-  else if (lockButton->wasPressedTimesOrMore(4) && !keySensor.getState()) {
+  else if (lockButton->wasPressedTimes(4) && !keySensor.getState()) {
     ecm.startEngineDefrost();
+   
   }
 }
 
@@ -463,6 +533,7 @@ void updateCan() {
     handbrakeSensor.update(canMessage);
     headlightSensor.update(canMessage);
     runningLightSensor.update(canMessage);
+    DriverDoorSensor.update(canMessage);
   }
   
   Serial.println(handbrakeSensor.getState());

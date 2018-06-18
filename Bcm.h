@@ -17,10 +17,10 @@ class Bcm {
       return this->isDriverDoorOpen() || this->isPassengerDoorOpen() || this->isBackDoorOpen();
     }
     boolean areDoorsLocked() {
-      return this->isLocked;
+     return this->isLocked;
     }
     boolean areDoorsUnlocked() {
-      return !this->isLocked;
+     return !this->isLocked;
     }
     void lockDoors() {
       this->lockRelay->set(HIGH, 100);
@@ -48,29 +48,28 @@ class Bcm {
       this->headlightWasherButton->update();
       this->headlightWasherRelay->update();
 
-      if (this->lockButton->wasPressedTimesOrMore(1)) {
-        this->isLocked = true;
-      } 
-      if (this->unlockButton->wasPressedTimesOrMore(1)) {
-        this->isLocked = false;
-      }
+       if (this->lockButton->wasPressedTimesOrMore(1)) {
+         this->isLocked = true;
+       } 
+       if (this->unlockButton->wasPressedTimesOrMore(1)) {
+         this->isLocked = false;
+       }
 
       bcmCallback(this->lockButton, this->unlockButton, this->headlightWasherButton, this);
     }
   private:
+    Button *lockButton        = new Button(new DigitalInput(22),700);
+    Button *unlockButton      = new Button(new DigitalInput(23),700);
     boolean isLocked          = false;
-  
-    Button *lockButton        = new Button(new DigitalInput(22), 700);
-    Button *unlockButton      = new Button(new DigitalInput(23), 700);
     TimedOutput *lockRelay    = new TimedOutput(new DigitalOutput(27, HIGH));
     TimedOutput *unlockRelay  = new TimedOutput(new DigitalOutput(28, HIGH));
 
-    Button *headlightWasherButton     = new Button(new DigitalInput(34, 20, HIGH, INPUT_PULLUP));
+    Button *headlightWasherButton     = new Button(new DigitalInput(34, 20, LOW, INPUT));
     TimedOutput *headlightWasherRelay = new TimedOutput(new DigitalOutput(40));
   
-    DigitalInput *driverDoorSensor    = new DigitalInput(49, 20, LOW, INPUT_PULLUP);
-    DigitalInput *passengerDoorSensor = new DigitalInput(51, 20, LOW, INPUT_PULLUP);
-    DigitalInput *backDoorSensor      = new DigitalInput(56, 20, LOW, INPUT_PULLUP);
+    DigitalInput *driverDoorSensor    = new DigitalInput(49, 20, LOW, INPUT);
+    DigitalInput *passengerDoorSensor = new DigitalInput(51, 20, LOW, INPUT);
+    DigitalInput *backDoorSensor      = new DigitalInput(56, 20, LOW, INPUT);
 };
 
 #endif

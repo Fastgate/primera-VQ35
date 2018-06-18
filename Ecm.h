@@ -87,6 +87,16 @@ class Ecm {
         this->crank->set(HIGH, CRANK_DURATION);
       }
     }
+
+     void startEngineRemote() {
+      if (!this->engineRunning) {
+        this->engineDefrostTime = 0;
+        this->setIgnition(IGNITION_ON);
+        this->engineRunning = true;
+        this->acc->deactivate();
+        this->crank->set(HIGH, CRANK_DURATION);
+      }
+    }
     void stopEngine() {
       if (this->engineRunning) {
         this->setIgnition(IGNITION_OFF);
@@ -94,7 +104,7 @@ class Ecm {
       }
     }
     void startEngineDefrost() {
-      this->startEngine();
+      this->startEngineRemote();
       this->engineDefrostTime = millis();
     }
     void stopEngineDefrost() {
@@ -193,6 +203,8 @@ class Ecm {
       if (isKeyInserted && this->isEngineDefrosting()) {
         this->stopEngineDefrost();
       }
+
+      
       if (this->engineDefrostTime > 0 && millis() - this->engineDefrostTime >= DEFROST_DURATION) {
         this->stopEngineDefrost();
         if (!isKeyInserted) {
@@ -205,7 +217,7 @@ class Ecm {
     uint8_t IGNITION_ON   = 2;
 
     static const unsigned int DEFROST_DURATION            = 10 * 60 * 1000;
-    static const unsigned int CRANK_DURATION              = 600;
+    static const unsigned int CRANK_DURATION              = 700;
     static const unsigned int ENGINE_BUTTON_STOP_DURATION = 3 * 1000;
   private:
     uint8_t ignitionState           = IGNITION_OFF;
