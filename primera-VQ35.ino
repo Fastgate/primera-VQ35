@@ -147,7 +147,6 @@ CanInput handbrakeSensor    (0x06F1, 4, B00010000);
 CanInput headlightSensor    (0x060D, 0, B00001110);
 CanInput runningLightSensor (0x060D, 0, B00001100);
 CanInput frontFogLight      (0x060D, 1, B00000001);
-CanInput DriverDoorSensor   (0x060D, 4, B00010000);
 
 
   //////////////////
@@ -554,12 +553,12 @@ void updateCan() {
   while (Can0.available()) {
     Can0.read(canMessage);
     canSniffer.update(canMessage);
+    bcm.updateCan(canMessage);
 
     handbrakeSensor.update(canMessage);
     headlightSensor.update(canMessage);
     runningLightSensor.update(canMessage);
     frontFogLight.update(canMessage);
-    DriverDoorSensor.update(canMessage);
   }
   
   Serial.println(handbrakeSensor.getState());

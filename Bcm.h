@@ -17,10 +17,10 @@ class Bcm {
       return this->isDriverDoorOpen() || this->isPassengerDoorOpen() || this->isBackDoorOpen();
     }
     boolean areDoorsLocked() {
-     return this->isLocked;
+      return this->isLocked;
     }
     boolean areDoorsUnlocked() {
-     return !this->isLocked;
+      return !this->isLocked;
     }
     void lockDoors() {
       this->lockRelay->set(HIGH, 100);
@@ -38,6 +38,9 @@ class Bcm {
     }
     void washHeadlights(unsigned int duration) {
       this->headlightWasherRelay->set(HIGH, duration);
+    }
+    void updateCan(CAN_message_t canMessage) {
+      this->driverDoorSensor.update(canMessage);
     }
     void update(void (*bcmCallback)(Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm)) {
       this->lockButton->update();
@@ -67,7 +70,7 @@ class Bcm {
     Button *headlightWasherButton     = new Button(new DigitalInput(34, 20, LOW, INPUT));
     TimedOutput *headlightWasherRelay = new TimedOutput(new DigitalOutput(40));
   
-    DigitalInput *driverDoorSensor    = new DigitalInput(49, 20, LOW, INPUT);
+    CanInput *driverDoorSensor        = new CanInput(0x060D, 4, B00010000);
     DigitalInput *passengerDoorSensor = new DigitalInput(51, 20, LOW, INPUT);
     DigitalInput *backDoorSensor      = new DigitalInput(56, 20, LOW, INPUT);
 };
