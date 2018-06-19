@@ -84,6 +84,13 @@ uint8_t illuminationLevel = 0x00;
 bool illuminationState = false;
 
 
+  ////////////////////
+ // Rear Fog Light //
+////////////////////
+
+Button rearFogButton(new AnalogInput(A23, 50, 55), 0);
+DigitalOutput *RearFogOutput = new DigitalOutput(52, HIGH);
+
   ////////////////////////////
  // CAR MODULE DEFINITIONS //
 ////////////////////////////
@@ -139,6 +146,7 @@ Obd2Helper obd2;
 CanInput handbrakeSensor    (0x06F1, 4, B00010000);
 CanInput headlightSensor    (0x060D, 0, B00001110);
 CanInput runningLightSensor (0x060D, 0, B00001100);
+CanInput frontFogLight      (0x060D, 1, B00000001);
 CanInput DriverDoorSensor   (0x060D, 4, B00010000);
 
 
@@ -175,6 +183,8 @@ void loop() {
   ecm.update();
 
   updateSwc();
+
+  updateRearFog();
 
   bcm.update(updateBcm);
 
@@ -476,6 +486,21 @@ void updateSwc() {
 }
 
 
+   /////////////////////
+  //Rear Fog Function// 
+ /////////////////////
+
+void updateRearFog(){
+  
+ rearFogButton.update();
+
+ if (illuminationSensor.getState() && frontFogLight.getState()){
+    if (rearFogButton.wasHeldFor(500)) {
+    //TODO
+  }
+  
+  }
+}
   ///////////////////
  // BCM FUNCTIONS //
 ///////////////////
@@ -533,6 +558,7 @@ void updateCan() {
     handbrakeSensor.update(canMessage);
     headlightSensor.update(canMessage);
     runningLightSensor.update(canMessage);
+    frontFogLight.update(canMessage);
     DriverDoorSensor.update(canMessage);
   }
   
