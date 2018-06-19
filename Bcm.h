@@ -40,7 +40,7 @@ class Bcm {
       this->headlightWasherRelay->set(HIGH, duration);
     }
     void updateCan(CAN_message_t canMessage) {
-      this->driverDoorSensor.update(canMessage);
+      this->driverDoorSensor->update(canMessage);
     }
     void update(void (*bcmCallback)(Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm)) {
       this->lockButton->update();
