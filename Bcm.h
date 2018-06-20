@@ -22,6 +22,10 @@ class Bcm {
     boolean areDoorsUnlocked() {
       return !this->isLocked;
     }
+
+    boolean isRearFogLightActive() {
+      return this->RearFogRelay->getState() == HIGH;
+    }
     void lockDoors() {
       this->lockRelay->set(HIGH, 100);
       this->isLocked = true;
@@ -41,15 +45,22 @@ class Bcm {
     }
     void updateCan(CAN_message_t canMessage) {
       this->driverDoorSensor->update(canMessage);
+      this->passengerDoorSensor->update(canMessage);
     }
+
+    void setRearFogLight(boolean newState) {
+      this->RearFogRelay->toggle(newState);
+    }
+
     void update(void (*bcmCallback)(Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm)) {
       this->lockButton->update();
       this->unlockButton->update();
-      this->lockRelay->update();
+      
       this->unlockRelay->update();
 
       this->headlightWasherButton->update();
       this->headlightWasherRelay->update();
+      
 
        if (this->lockButton->wasPressedTimesOrMore(1)) {
          this->isLocked = true;
@@ -70,9 +81,10 @@ class Bcm {
     Button *headlightWasherButton     = new Button(new DigitalInput(34, 20, LOW, INPUT));
     TimedOutput *headlightWasherRelay = new TimedOutput(new DigitalOutput(40));
   
-    CanInput *driverDoorSensor        = new CanInput(0x060D, 4, B00010000);
-    DigitalInput *passengerDoorSensor = new DigitalInput(51, 20, LOW, INPUT);
+    CanInput *driverDoorSensor        = new CanInput(0x060D, 0, B00010000);
+    CanInput *passengerDoorSensor     = new CanInput(0x060D, 0, B00010000);
     DigitalInput *backDoorSensor      = new DigitalInput(56, 20, LOW, INPUT);
+    DigitalOutput *RearFogRelay       = new DigitalOutput(52, HIGH);
 };
 
 #endif

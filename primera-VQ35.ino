@@ -89,7 +89,7 @@ bool illuminationState = false;
 ////////////////////
 
 Button rearFogButton(new AnalogInput(A23, 50, 55), 0);
-DigitalOutput *RearFogOutput = new DigitalOutput(52, HIGH);
+
 
   ////////////////////////////
  // CAR MODULE DEFINITIONS //
@@ -496,8 +496,11 @@ void updateRearFog(){
  if (illuminationSensor.getState() && frontFogLight.getState()){
     if (rearFogButton.wasHeldFor(500)) {
     //TODO
-  }
-  
+     bcm.setRearFogLight(true);
+    }
+    else{
+      bcm.setRearFogLight(false);
+      }
   }
 }
   ///////////////////
