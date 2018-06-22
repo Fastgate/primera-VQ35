@@ -60,14 +60,13 @@ class Bcm {
 
       this->headlightWasherButton->update();
       this->headlightWasherRelay->update();
-      
 
-       if (this->lockButton->wasPressedTimesOrMore(1)) {
-         this->isLocked = true;
-       } 
-       if (this->unlockButton->wasPressedTimesOrMore(1)) {
-         this->isLocked = false;
-       }
+      if (this->lockButton->wasPressedTimesOrMore(1)) {
+        this->isLocked = true;
+      } 
+      if (this->unlockButton->wasPressedTimesOrMore(1)) {
+        this->isLocked = false;
+      }
 
       bcmCallback(this->lockButton, this->unlockButton, this->headlightWasherButton, this);
     }
