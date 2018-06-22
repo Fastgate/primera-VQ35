@@ -55,7 +55,7 @@ class Bcm {
     void update(void (*bcmCallback)(Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm)) {
       this->lockButton->update();
       this->unlockButton->update();
-      
+      this->lockRelay->update();
       this->unlockRelay->update();
 
       this->headlightWasherButton->update();
