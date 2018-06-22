@@ -497,6 +497,9 @@ void updateRearFog(){
       bcm.toggleRearFogLight();
     }
   }
+  if (!frontFogLight.getState() && bcm.isRearFogLightActive()) {
+    bcm.toggleRearFogLight();
+  }
 }
   ///////////////////
  // BCM FUNCTIONS //
