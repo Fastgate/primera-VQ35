@@ -490,17 +490,12 @@ void updateSwc() {
  /////////////////////
 
 void updateRearFog(){
-  
- rearFogButton.update();
+  rearFogButton.update();
 
- if (illuminationSensor.getState() && frontFogLight.getState()){
+  if (illuminationSensor.getState() && frontFogLight.getState()){
     if (rearFogButton.wasHeldFor(500)) {
-    //TODO
-     bcm.setRearFogLight(true);
+      bcm.toggleRearFogLight();
     }
-    else{
-      bcm.setRearFogLight(false);
-      }
   }
 }
   ///////////////////

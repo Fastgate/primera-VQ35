@@ -22,7 +22,9 @@ class Bcm {
     boolean areDoorsUnlocked() {
       return !this->isLocked;
     }
-
+    void toggleRearFogLight() {
+      this->RearFogRelay->toggle(!this->RearFogRelay->getState());
+    }
     boolean isRearFogLightActive() {
       return this->RearFogRelay->getState() == HIGH;
     }
@@ -47,11 +49,6 @@ class Bcm {
       this->driverDoorSensor->update(canMessage);
       this->passengerDoorSensor->update(canMessage);
     }
-
-    void setRearFogLight(boolean newState) {
-      this->RearFogRelay->toggle(newState);
-    }
-
     void update(void (*bcmCallback)(Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm)) {
       this->lockButton->update();
       this->unlockButton->update();
