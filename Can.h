@@ -24,7 +24,9 @@ class CanInput : public Input {
       return this->state;
     }
     void update(CAN_message_t canMessage) {
-      this->state = canMessage.id == this->canId && canMessage.len >= this->byteNumber + 1 && (canMessage.buf[this->byteNumber] & this->bitMask) == this->bitMask;
+      if (canMessage.id == this->canId) {
+        this->state = canMessage.len >= this->byteNumber + 1 && (canMessage.buf[this->byteNumber] & this->bitMask) == this->bitMask;
+      }
     }
   private:
     uint32_t canId      = 0;
