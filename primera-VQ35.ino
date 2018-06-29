@@ -88,17 +88,18 @@ bool illuminationState = false;
  // Rear Fog Light //
 ////////////////////
 
-Button rearFogButton(new AnalogInput(A23, 50, 55), 0);
-
+Button rearFogButton(new AnalogInput(A19, 0, 10), 0);
+AnalogInput rearFogTest(49, 0, 10);
 
   ////////////////////////////
  // CAR MODULE DEFINITIONS //
 ////////////////////////////
 
 DigitalInput clutchSensor(16, 20, HIGH, INPUT);
-DigitalInput brakeSensor(17, 20, HIGH, INPUT);
+//DigitalInput brakeSensor(17, 20, HIGH, INPUT);
 DigitalInput neutralSensor(36, 20, HIGH, INPUT);
 DigitalInput keySensor(6, 20, HIGH, INPUT_PULLUP);
+CanInput brakeSensor           (0x06F1, 4, B01000000);
 
 Sleep sleep(13, 10 * 60 * 1000);
 Acm acm;
@@ -111,18 +112,16 @@ Ecm ecm(&clutchSensor, &brakeSensor, &neutralSensor, &keySensor, &bcm);
  // STEERING WHEEL CONTROLS //
 /////////////////////////////
 
-Button swcVolumeUpButton(new AnalogInput(A11, 28, 34), 0);
-Button swcVolumeDownButton(new AnalogInput(A10, 28, 34), 0);
-Button swcPhoneButton(new AnalogInput(A11, 10, 16), 0);
-Button swcVoiceButton(new AnalogInput(A10, 10, 16), 0);
-Button swcSeekUpButton(new AnalogInput(A11, 15, 20), 0);
-Button swcSeekDownButton(new AnalogInput(A10, 15, 20), 0);
+Button swcVolumeUpButton(new AnalogInput(A11, 94, 98), 0);
+Button swcVolumeDownButton(new AnalogInput(A10, 94, 98), 0);
+Button swcPhoneButton(new AnalogInput(A11, 2, 4), 0);
+Button swcVoiceButton(new AnalogInput(A10, 2, 4), 0);
+Button swcSeekUpButton(new AnalogInput(A11, 24, 29), 0);
+Button swcSeekDownButton(new AnalogInput(A10, 24, 29), 0);
 
 
 //************************** Primera STW Inputs *******************************
 
-int RevGear = 38;           // Rückwärtsgang  OK
-int RevGear_Stat = 0;
 
 
   ////////////////////////
@@ -144,8 +143,8 @@ CanSniffer canSniffer;
 Obd2Helper obd2;
 
 CanInput handbrakeSensor    (0x06F1, 4, B00010000);
-CanInput headlightSensor    (0x060D, 0, B00001110);
-CanInput runningLightSensor (0x060D, 0, B00001100);
+CanInput headlightSensor    (0x060D, 0, B00000110);
+CanInput runningLightSensor (0x060D, 0, B00000100);
 CanInput frontFogLight      (0x060D, 1, B00000001);
 
 
@@ -159,8 +158,7 @@ void setup() {
 
   // *********************** Primera STW Inputs ************************
 
-  pinMode(RevGear, INPUT_PULLUP);
-  digitalWrite(RevGear, HIGH);
+ 
 
   Can0.begin(500000);
 
@@ -425,7 +423,7 @@ void updateIllumination() {
     desiredIlluminationLevel = max(46, (desiredIlluminationLevel - 0xFF / 16));
   }
 
-  changeIllumination(illuminationSensor.getState(), desiredIlluminationLevel);
+  changeIllumination(runningLightSensor.getState(), desiredIlluminationLevel);
 }
 
 void changeIllumination(bool newState, uint8_t newLevel) {
@@ -453,6 +451,8 @@ void updateSwc() {
   swcVoiceButton.update();
   swcSeekUpButton.update();
   swcSeekDownButton.update();
+
+  
 
   if (swcVolumeUpButton.wasPressedTimes(1)) {
     Keyboard.press(KEY_MEDIA_VOLUME_INC);
@@ -491,9 +491,10 @@ void updateSwc() {
 
 void updateRearFog(){
   rearFogButton.update();
+  
 
-  if (illuminationSensor.getState() && frontFogLight.getState()){
-    if (rearFogButton.wasHeldFor(500)) {
+  if (headlightSensor.getState() && frontFogLight.getState()){
+    if (rearFogButton.wasPressedTimes(1)) {
       bcm.toggleRearFogLight();
     }
   }
@@ -509,7 +510,7 @@ void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasher
   acm.setHub(keySensor.getState());
 
   // headlight washer
-  if (illuminationSensor.getState() && headlightWasherButton->wasPressedTimes(1)) {
+  if (headlightSensor.getState() && headlightWasherButton->wasHeldFor(500)) {
     bcm->washHeadlights(1200);
   }
 
@@ -518,14 +519,15 @@ void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasher
     acm.setOtg(true);
     sleep.cancelSleepRequest();
   }
-  else if (unlockButton->wasPressedTimes(2)) {
+  else if (unlockButton->wasPressedTimes(3)) {
     bcm->openWindows();
   }
 
   // car remote lock button
   if (lockButton->wasPressedTimes(1)) {
     if (bcm->isAnyDoorOpen()) {
-      //bcm->unlockDoors();
+        bcm->unlockDoors();
+       
     }
     else {
       if (!keySensor.getState()) {
@@ -555,6 +557,7 @@ void updateCan() {
     Can0.read(canMessage);
     canSniffer.update(canMessage);
     bcm.updateCan(canMessage);
+    ecm.updateCan(canMessage);
 
     handbrakeSensor.update(canMessage);
     headlightSensor.update(canMessage);
@@ -562,6 +565,6 @@ void updateCan() {
     frontFogLight.update(canMessage);
   }
   
-  Serial.println(handbrakeSensor.getState());
+  //Serial.println(FLDoorSensor.getState());
 }
 

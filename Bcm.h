@@ -4,17 +4,23 @@
 class Bcm {
   public:
     Bcm() {}
-    boolean isDriverDoorOpen() {
-      return this->driverDoorSensor->getState();
+    boolean isFLDoorOpen() {
+      return this->FLDoorSensor->getState();
     }
-    boolean isPassengerDoorOpen() {
-      return this->passengerDoorSensor->getState();
+    boolean isFRDoorOpen() {
+      return this->FRDoorSensor->getState();
+    }
+    boolean isRLDoorOpen() {
+      return this->RLDoorSensor->getState();
+    }
+    boolean isRRDoorOpen() {
+      return this->RRDoorSensor->getState();
     }
     boolean isBackDoorOpen() {
       return this->backDoorSensor->getState();
     }
     boolean isAnyDoorOpen() {
-      return this->isDriverDoorOpen() || this->isPassengerDoorOpen() || this->isBackDoorOpen();
+      return this->isFLDoorOpen() || this->isFRDoorOpen() || this->isRLDoorOpen() || this->isRRDoorOpen() || this->isBackDoorOpen();
     }
     boolean areDoorsLocked() {
       return this->isLocked;
@@ -33,7 +39,7 @@ class Bcm {
       this->isLocked = true;
     }
     void unlockDoors() {
-      this->unlockRelay->set(HIGH, 100);
+      this->unlockRelay->set(HIGH, 1000);
       this->isLocked = false;
     }
     void openWindows() {
@@ -46,8 +52,11 @@ class Bcm {
       this->headlightWasherRelay->set(HIGH, duration);
     }
     void updateCan(CAN_message_t canMessage) {
-      this->driverDoorSensor->update(canMessage);
-      this->passengerDoorSensor->update(canMessage);
+      this->FLDoorSensor->update(canMessage);
+      this->FRDoorSensor->update(canMessage);
+      this->RLDoorSensor->update(canMessage);
+      this->RRDoorSensor->update(canMessage);
+     
     }
     void update(void (*bcmCallback)(Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm)) {
       this->lockButton->update();
@@ -77,9 +86,11 @@ class Bcm {
     Button *headlightWasherButton     = new Button(new DigitalInput(34, 20, LOW, INPUT));
     TimedOutput *headlightWasherRelay = new TimedOutput(new DigitalOutput(40));
   
-    CanInput *driverDoorSensor        = new CanInput(0x060D, 0, B00010000);
-    CanInput *passengerDoorSensor     = new CanInput(0x060D, 0, B00010000);
-    DigitalInput *backDoorSensor      = new DigitalInput(56, 20, LOW, INPUT);
+    CanInput *FLDoorSensor            = new CanInput(0x060D, 0, B00001000);
+    CanInput *FRDoorSensor            = new CanInput(0x060D, 0, B00010000);
+    CanInput *RLDoorSensor            = new CanInput(0x060D, 0, B00100000);
+    CanInput *RRDoorSensor            = new CanInput(0x060D, 0, B01000000);
+    CanInput *backDoorSensor          = new CanInput(0x0358, 2, B00000001);
     DigitalOutput *RearFogRelay       = new DigitalOutput(52, HIGH);
 };
 

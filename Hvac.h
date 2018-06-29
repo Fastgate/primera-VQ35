@@ -246,7 +246,7 @@ private:
   void setDial(DigitalOutput *select, float voltage) {
     select->activate();
     SPI.transfer(0);
-    SPI.transfer((int)roundf(voltage / 4.96 * 256 - 1));
+    SPI.transfer((int)roundf(voltage / 5.16 * 256 - 1));
     select->deactivate();
   }
 

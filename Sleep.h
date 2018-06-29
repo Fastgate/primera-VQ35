@@ -18,9 +18,9 @@ class Sleep {
     void update() {
       if (this->sleepRequestTime > 0 && millis() - this->sleepRequestTime >= this->timeout) {
         this->sleepRequestTime = 0;
-        Serial.println("Going to sleep");
+        //Serial.println("Going to sleep");
         Snooze.deepSleep(snoozeConfig);
-        Serial.println("Waking up!");
+        //Serial.println("Waking up!");
       }
     }
     void cancelSleepRequest() {

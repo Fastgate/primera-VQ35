@@ -65,7 +65,7 @@ class IgnitionButton : public Button {
 
 class Ecm {
   public:
-    Ecm(DigitalInput *clutchSensor, DigitalInput *brakeSensor, DigitalInput *neutralSensor, DigitalInput *keySensor, Bcm *bcm) {
+    Ecm(DigitalInput *clutchSensor, CanInput *brakeSensor, DigitalInput *neutralSensor, DigitalInput *keySensor, Bcm *bcm) {
       this->clutchSensor  = clutchSensor;
       this->brakeSensor   = brakeSensor;
       this->neutralSensor = neutralSensor;
@@ -123,6 +123,11 @@ class Ecm {
         this->ignitionState = newState;
       }
     }
+
+     void updateCan(CAN_message_t canMessage) {
+      this->brakeSensor->update(canMessage);
+      }
+
     void update() {
       this->neutralSensor->getState();
       boolean isKeyInserted   = this->keySensor->getState();
@@ -160,8 +165,8 @@ class Ecm {
          Keyboard.release(KEY_SYSTEM_WAKE_UP);
         }else {
           if(!isKeyInserted){
-            Keyboard.press(KEY_SYSTEM_POWER_DOWN);   // ENGINE_BUTTON
-            Keyboard.release(KEY_SYSTEM_POWER_DOWN);
+            //Keyboard.press(KEY_SYSTEM_POWER_DOWN);   // ENGINE_BUTTON
+            //Keyboard.release(KEY_SYSTEM_POWER_DOWN);
             }
           }
 
@@ -225,7 +230,7 @@ class Ecm {
     unsigned long engineDefrostTime = 0;
 
     DigitalInput *clutchSensor;
-    DigitalInput *brakeSensor;
+    //CanInput *brakeSensor;
     DigitalInput *neutralSensor;
     DigitalInput *keySensor;
     Bcm *bcm;
@@ -237,6 +242,8 @@ class Ecm {
     DigitalOutput *key  = new DigitalOutput(43);
     TimedOutput *crank  = new TimedOutput(new DigitalOutput(41));
     Button *crankSensor = new Button(new DigitalInput(41, 20, HIGH, OUTPUT));
+    CanInput *brakeSensor            = new CanInput(0x06F1, 4, B01000000);
+    
 
     DigitalOutput *natsLed  = new DigitalOutput(57, LOW);
 };
