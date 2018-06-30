@@ -91,6 +91,7 @@ bool illuminationState = false;
 Button rearFogButton(new AnalogInput(A19, 0, 10), 0);
 AnalogInput rearFogTest(49, 0, 10);
 
+
   ////////////////////////////
  // CAR MODULE DEFINITIONS //
 ////////////////////////////
@@ -99,7 +100,7 @@ DigitalInput clutchSensor(16, 20, HIGH, INPUT);
 //DigitalInput brakeSensor(17, 20, HIGH, INPUT);
 DigitalInput neutralSensor(36, 20, HIGH, INPUT);
 DigitalInput keySensor(6, 20, HIGH, INPUT_PULLUP);
-CanInput brakeSensor           (0x06F1, 4, B01000000);
+CanInput brakeSensor(0x06F1, 4, B01000000);
 
 Sleep sleep(13, 10 * 60 * 1000);
 Acm acm;

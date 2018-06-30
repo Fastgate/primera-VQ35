@@ -230,7 +230,7 @@ class Ecm {
     unsigned long engineDefrostTime = 0;
 
     DigitalInput *clutchSensor;
-    //CanInput *brakeSensor;
+    CanInput *brakeSensor;
     DigitalInput *neutralSensor;
     DigitalInput *keySensor;
     Bcm *bcm;
@@ -242,8 +242,7 @@ class Ecm {
     DigitalOutput *key  = new DigitalOutput(43);
     TimedOutput *crank  = new TimedOutput(new DigitalOutput(41));
     Button *crankSensor = new Button(new DigitalInput(41, 20, HIGH, OUTPUT));
-    CanInput *brakeSensor            = new CanInput(0x06F1, 4, B01000000);
-    
+        
 
     DigitalOutput *natsLed  = new DigitalOutput(57, LOW);
 };
