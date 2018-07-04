@@ -88,8 +88,9 @@ bool illuminationState = false;
  // Rear Fog Light //
 ////////////////////
 
-Button rearFogButton(new AnalogInput(A19, 0, 10), 0);
-AnalogInput rearFogTest(49, 0, 10);
+Button rearFogButton(new AnalogInput(A19, 220, 400), 0);
+
+
 
   ////////////////////////////
  // CAR MODULE DEFINITIONS //
@@ -112,8 +113,8 @@ Ecm ecm(&clutchSensor, &brakeSensor, &neutralSensor, &keySensor, &bcm);
  // STEERING WHEEL CONTROLS //
 /////////////////////////////
 
-Button swcVolumeUpButton(new AnalogInput(A11, 94, 98), 0);
-Button swcVolumeDownButton(new AnalogInput(A10, 94, 98), 0);
+Button swcVolumeUpButton(new AnalogInput(A11, 90, 98), 0);
+Button swcVolumeDownButton(new AnalogInput(A10, 90, 98), 0);
 Button swcPhoneButton(new AnalogInput(A11, 2, 4), 0);
 Button swcVoiceButton(new AnalogInput(A10, 2, 4), 0);
 Button swcSeekUpButton(new AnalogInput(A11, 24, 29), 0);
@@ -452,7 +453,7 @@ void updateSwc() {
   swcSeekUpButton.update();
   swcSeekDownButton.update();
 
-  
+
 
   if (swcVolumeUpButton.wasPressedTimes(1)) {
     Keyboard.press(KEY_MEDIA_VOLUME_INC);
@@ -494,7 +495,7 @@ void updateRearFog(){
   
 
   if (headlightSensor.getState() && frontFogLight.getState()){
-    if (rearFogButton.wasPressedTimes(1)) {
+    if (rearFogButton.wasHeldFor(500)) {
       bcm.toggleRearFogLight();
     }
   }
