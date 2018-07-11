@@ -77,8 +77,8 @@ class Bcm {
       bcmCallback(this->lockButton, this->unlockButton, this->headlightWasherButton, this);
     }
   private:
-    Button *lockButton        = new Button(new DigitalInput(22),700);
-    Button *unlockButton      = new Button(new DigitalInput(23),700);
+    Button *lockButton        = new Button(new DigitalInput(23),700);
+    Button *unlockButton      = new Button(new DigitalInput(22),700);
     boolean isLocked          = false;
     TimedOutput *lockRelay    = new TimedOutput(new DigitalOutput(27, HIGH));
     TimedOutput *unlockRelay  = new TimedOutput(new DigitalOutput(28, HIGH));

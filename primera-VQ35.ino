@@ -103,7 +103,7 @@ DigitalInput neutralSensor(36, 20, HIGH, INPUT);
 DigitalInput keySensor(6, 20, HIGH, INPUT_PULLUP);
 CanInput brakeSensor(0x06F1, 4, B01000000);
 
-Sleep sleep(13, 10 * 60 * 1000);
+Sleep sleep(22, 10 * 60 * 1000);
 Acm acm;
 Hvac hvac;
 Bcm bcm;
@@ -160,7 +160,7 @@ void setup() {
 
   // *********************** Primera STW Inputs ************************
 
- 
+  Keyboard.begin();
 
   Can0.begin(500000);
 
@@ -454,15 +454,24 @@ void updateSwc() {
   swcSeekUpButton.update();
   swcSeekDownButton.update();
 
-
+//int swc1 = analogRead(A10);
+//int swc2 = analogRead(A11);
+//Serial.println(swc1);
+//Serial.println(swc2);
 
   if (swcVolumeUpButton.wasPressedTimes(1)) {
     Keyboard.press(KEY_MEDIA_VOLUME_INC);
     Keyboard.release(KEY_MEDIA_VOLUME_INC);
+    _MmiAndroidPacket.payload(21);
+     _MmiAndroidPacket.serialize(Serial);
+    Serial.println("volumeUp");
   }
   if (swcVolumeDownButton.wasPressedTimes(1)) {
     Keyboard.press(KEY_MEDIA_VOLUME_DEC);
     Keyboard.release(KEY_MEDIA_VOLUME_DEC);
+    _MmiAndroidPacket.payload(22);
+    _MmiAndroidPacket.serialize(Serial);
+    Serial.println("volumeDown");
   }
   if (swcPhoneButton.wasPressedTimes(1)) {
     // TODO start the phone app
@@ -479,10 +488,14 @@ void updateSwc() {
   if (swcSeekUpButton.wasPressedTimes(1)) {
     Keyboard.press(KEY_MEDIA_PREV_TRACK);
     Keyboard.release(KEY_MEDIA_PREV_TRACK);
+    _MmiAndroidPacket.payload(10);
+    _MmiAndroidPacket.serialize(Serial);
   }
   if (swcSeekDownButton.wasPressedTimes(1)) {
     Keyboard.press(KEY_MEDIA_NEXT_TRACK);
     Keyboard.release(KEY_MEDIA_NEXT_TRACK);
+    _MmiAndroidPacket.payload(11);
+    _MmiAndroidPacket.serialize(Serial);
   }
 }
 
