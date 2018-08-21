@@ -150,6 +150,7 @@ CanInput runningLightSensor (0x060D, 0, B00000100);
 CanInput frontFogLight      (0x060D, 1, B00000001);
 
 
+
   //////////////////
  // SKETCH SETUP //
 //////////////////
@@ -157,6 +158,8 @@ CanInput frontFogLight      (0x060D, 1, B00000001);
 void setup() {
   Serial.begin(115200);
   statusInitSuccess.serialize(Serial);
+
+  
 
   // *********************** Primera STW Inputs ************************
 
@@ -190,6 +193,7 @@ void loop() {
   hvac.update();
   
   sleep.update();
+
 }
 
 
@@ -578,8 +582,48 @@ void updateCan() {
     headlightSensor.update(canMessage);
     runningLightSensor.update(canMessage);
     frontFogLight.update(canMessage);
+
+    if (canMessage.id == 0x023D) {
+    writeRpmMessage(0x0180, canMessage);
+}
+
+    if (canMessage.id == 0x023D) {
+    writeEctMessage(0x0551, canMessage);
+}
   }
   
   //Serial.println(FLDoorSensor.getState());
 }
 
+  ////////////////////
+ // 370Z GAUGE // 
+//////////////////
+
+void writeRpmMessage(uint32_t newId, CAN_message_t rpmMessage) {
+  static CAN_message_t sendRpmMessage;
+
+  uint16_t newRpm = (rpmMessage.buf[4] * 256 + rpmMessage.buf[3]) * 2.3 * 10;
+  uint8_t rpmData[2] = { newRpm, newRpm >> 8 };
+  sendRpmMessage.id = newId;
+  //sendMessage.ext = originalMessage.ext;
+  sendRpmMessage.len = rpmMessage.len;
+  sendRpmMessage.buf[0] = rpmData[1];
+  sendRpmMessage.buf[1] = rpmData[0];
+ 
+  uint16_t realRpm = rpmMessage.buf[4] * 256 + rpmMessage.buf[3];
+  Serial.println(realRpm*3.14159265359);
+  
+  Can0.write(sendRpmMessage);
+}
+
+void writeEctMessage(uint32_t newId, CAN_message_t ectMessage) {
+  static CAN_message_t sendEctMessage;
+
+  sendEctMessage.id = newId;
+  //sendMessage.ext = originalMessage.ext;
+  sendEctMessage.len = ectMessage.len;
+  sendEctMessage.buf[0] = ectMessage.buf[7];
+  Serial.println();
+  
+  Can0.write(sendEctMessage);
+}
