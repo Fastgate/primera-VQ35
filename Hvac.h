@@ -3,6 +3,7 @@
 
 #include <arduinoIO.h>
 #include "bitfield.h"
+SPISettings settingsA(2000000, MSBFIRST, SPI_MODE0);
 
 union ClimateControl {
   unsigned char data[4];
@@ -34,7 +35,7 @@ public:
     this->climateControl->payload()->desiredTemperature   = 21 * 2;
     this->climateControl->payload()->isAirductAuto        = false;
 
-    SPI.begin();
+    SPI.beginTransaction(settingsA);
 
     this->setAirduct(1);
     this->setFanLevel(2);
@@ -248,7 +249,7 @@ private:
     SPI.transfer(0);
     SPI.transfer((int)roundf(voltage / 5.00 * 256 - 1));
     select->deactivate();
-  }
+    }
 
   SerialDataPacket<ClimateControl> *climateControl = new SerialDataPacket<ClimateControl>(0x73, 0x63);
   
