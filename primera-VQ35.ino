@@ -1,8 +1,8 @@
 #include <SPI.h>
+#include <mcp_can.h>
 #include <FlexCAN.h>
 #include <arduinoIO.h>
 #include <arduinoMmi.h>
-#include <mcp_can.h>
 
 #include "Binary.h"
 #include "Serial.h"
@@ -13,15 +13,8 @@
 #include "Acm.h"
 #include "Bcm.h"
 #include "Ecm.h"
+#include "Cluster.h"
 
-
-  ///////////////////
- // SPI SETTINGS // 
-/////////////////
-
-//SPISettings settingsA(2000000, MSBFIRST, SPI_MODE0); 
-SPISettings settingsB(16000000, LSBFIRST, SPI_MODE1); 
-MCP_CAN CAN0(35);     // Set CS to pin 10 , MOSI1 = 0 , MISO1 = 1
 
   /////////////
  // HELPERS //
@@ -116,7 +109,7 @@ Acm acm;
 Hvac hvac;
 Bcm bcm;
 Ecm ecm(&clutchSensor, &brakeSensor, &neutralSensor, &keySensor, &bcm);
-
+Cluster cluster(35); // cs pin 35
 
   /////////////////////////////
  // STEERING WHEEL CONTROLS //
@@ -161,41 +154,6 @@ CanInput ignitionOn         (0x060D, 0, B01000000);
 
 
   //////////////////
- // 370Z Cluster // 
-//////////////////
-
-    byte ID002[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id160[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id180[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id182[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id1F9[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id215[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id216[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id245[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id280[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id284[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id285[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id292[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id2DE[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id342[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id351[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id354[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id355[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id358[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id35D[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id385[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id421[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id512[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id54C[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id551[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id580[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id5C5[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id60D[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id625[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id682[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-    byte Id6E2[8] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07};
-
-  //////////////////
  // SKETCH SETUP //
 //////////////////
 
@@ -213,11 +171,7 @@ void setup() {
 
   //obd2.sendRequest(8, 23);
 
-  if(CAN0.begin(MCP_ANY, CAN_500KBPS, MCP_8MHZ) == CAN_OK) Serial.println("MCP2515 Initialized Successfully!");
-  else Serial.println("Error Initializing MCP2515...");
-
-  CAN0.setMode(MCP_NORMAL);   // Change to normal mode to allow messages to be transmitted
-
+  cluster.setup(MCP_ANY, CAN_500KBPS, MCP_8MHZ);
 }
 
 
@@ -627,62 +581,17 @@ void updateCan() {
     canSniffer.update(canMessage);
     bcm.updateCan(canMessage);
     ecm.updateCan(canMessage);
+    cluster.updateCan(canMessage);
 
     handbrakeSensor.update(canMessage);
     headlightSensor.update(canMessage);
     runningLightSensor.update(canMessage);
     frontFogLight.update(canMessage);
     ignitionAcc.update(canMessage);
-    ignitionOn.update(canMessage);
-
-    if (canMessage.id == 0x023D) {
-    writeRpmMessage(0x0180, canMessage);
-}
-
-    if (canMessage.id == 0x023D) {
-    writeEctMessage(0x0551, canMessage);
-    }
-
-   
+    ignitionOn.update(canMessage);  
   }
   
   //Serial.println(FLDoorSensor.getState());
-}
-
-  ////////////////////
- // 370Z GAUGE // 
-//////////////////
-
-void writeRpmMessage(uint32_t newId, CAN_message_t rpmMessage) {
-  static CAN_message_t sendRpmMessage;
-
-  uint16_t newRpm = (rpmMessage.buf[4] * 256 + rpmMessage.buf[3]) * 2.3 * 10;
-  uint8_t rpmData[2] = { newRpm, newRpm >> 8 };
- 
-  
-  sendRpmMessage.id = newId;
-  //sendMessage.ext = originalMessage.ext;
-  sendRpmMessage.len = rpmMessage.len;
-  sendRpmMessage.buf[0] = rpmData[1];
-  sendRpmMessage.buf[1] = rpmData[0];
- 
-  uint16_t realRpm = rpmMessage.buf[4] * 256 + rpmMessage.buf[3];
-  Serial.println(realRpm*3.14159265359);
-  
-  Can0.write(sendRpmMessage);
-}
- 
-void writeEctMessage(uint32_t newId, CAN_message_t ectMessage) {
-  static CAN_message_t sendEctMessage;
-  SPI.beginTransaction(settingsB);
-
-  sendEctMessage.id = newId;
-  //sendMessage.ext = originalMessage.ext;
-  sendEctMessage.len = ectMessage.len;
-  sendEctMessage.buf[0] = ectMessage.buf[7];
-  //Serial.println(ectMessage);
-  
-  Can0.write(sendEctMessage);
 }
 
 
