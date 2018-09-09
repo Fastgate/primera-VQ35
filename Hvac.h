@@ -3,7 +3,6 @@
 
 #include <arduinoIO.h>
 #include "bitfield.h"
-SPISettings settingsA(2000000, MSBFIRST, SPI_MODE0);
 
 union ClimateControl {
   unsigned char data[4];
@@ -34,8 +33,6 @@ public:
     this->climateControl->payload()->fanLevel             = 0;
     this->climateControl->payload()->desiredTemperature   = 21 * 2;
     this->climateControl->payload()->isAirductAuto        = false;
-
-    SPI.beginTransaction(settingsA);
 
     this->setAirduct(1);
     this->setFanLevel(2);
