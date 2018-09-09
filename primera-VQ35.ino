@@ -1,5 +1,5 @@
 #include <SPI.h>
-#include <mcp_can.h>
+#include <mcp2515.h>
 #include <FlexCAN.h>
 #include <arduinoIO.h>
 #include <arduinoMmi.h>
@@ -109,7 +109,7 @@ Acm acm;
 Hvac hvac;
 Bcm bcm;
 Ecm ecm(&clutchSensor, &brakeSensor, &neutralSensor, &keySensor, &bcm);
-Cluster cluster(35); // cs pin 35
+Cluster cluster(19);
 
   /////////////////////////////
  // STEERING WHEEL CONTROLS //
@@ -171,7 +171,7 @@ void setup() {
 
   //obd2.sendRequest(8, 23);
 
-  cluster.setup(MCP_ANY, CAN_500KBPS, MCP_8MHZ);
+  cluster.setup(CAN_500KBPS, MCP_8MHZ);
 }
 
 

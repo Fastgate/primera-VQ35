@@ -1,23 +1,21 @@
 #ifndef CLUSTER_H
 #define CLUSTER_H
 
-#include <mcp_can.h>
+#include <mcp2515.h>
 #include "bitfield.h"
 
 class Cluster {
   public:
     Cluster(uint8_t csPin) {
-      this->can = new MCP_CAN(csPin);
+      this->can = new MCP2515(csPin);
     }
     ~Cluster() {
       delete this->can;
     }
-    boolean setup(uint8_t mode, uint8_t speed, uint8_t clock) {
-      uint8_t canStatus = this->can->begin(mode, speed, clock);
-      if (canStatus == CAN_OK) {
-        this->can->setMode(MCP_NORMAL);
-        this->isInitialized = true;
-      }
+    boolean setup(CAN_SPEED speed, CAN_CLOCK clock) {
+      this->can->reset();
+      this->can->setBitrate(speed, clock);
+      this->isInitialized = this->can->setNormalMode() == MCP2515::ERROR_OK;
       return this->isInitialized;
     }
     void updateCan(CAN_message_t inputMessage) {
@@ -27,17 +25,27 @@ class Cluster {
             this->packet1.rpm = (inputMessage.buf[4] * 256 + inputMessage.buf[3]) * 2.3 * 10;
             this->packet2.coolantTemperature = inputMessage.buf[7];
 
-            this->can->sendMsgBuf(0x0180, 0, sizeof(this->packet1), (uint8_t*)this->packet1.data);
-            this->can->sendMsgBuf(0x0551, 0, sizeof(this->packet2), (uint8_t*)this->packet2.data);
+            this->sendMessage(0x0180, sizeof(this->packet1), (uint8_t*)this->packet1.data);
+            this->sendMessage(0x0551, sizeof(this->packet2), (uint8_t*)this->packet2.data);
             break;
           case (0x060D): // bcm
-            this->can->sendMsgBuf(0x060D, 0, inputMessage.len, (uint8_t*)inputMessage.buf);
+            this->sendMessage(0x060D, inputMessage.len, (uint8_t*)inputMessage.buf);
             break;
         }
       }
     }
   private:
-    MCP_CAN* can;
+    boolean sendMessage(uint32_t can_id, uint8_t can_dlc, uint8_t* data) {
+      struct can_frame message;
+      message.can_id = can_id;
+      message.can_dlc = can_dlc;
+      for (uint8_t i = 0; i < can_dlc && i < 8; i++) {
+        message.data[i] = data[i];
+      }
+      return this->can->sendMessage(&message) == MCP2515::ERROR_OK;
+    }
+  
+    MCP2515* can;
     boolean isInitialized = false;
 
     union {
