@@ -6,8 +6,9 @@
 
 class Cluster {
   public:
-    Cluster(uint8_t csPin) {
+    Cluster(uint8_t csPin, DigitalInput *clutchSensor) {
       this->can = new MCP2515(csPin);
+      this->clutchSensor = clutchSensor;
     }
     ~Cluster() {
       delete this->can;
@@ -20,6 +21,8 @@ class Cluster {
     }
     void updateCan(CAN_message_t inputMessage) {
       if (this->isInitialized) {
+        this->packet1.clutchPressed = this->clutchSensor->getState();
+        
         switch (inputMessage.id) {
           case (0x023D): // ect/rpm
             this->packet1.rpm = (inputMessage.buf[4] * 256 + inputMessage.buf[3]) * 2.3 * 10;
@@ -49,11 +52,14 @@ class Cluster {
     }
   
     MCP2515* can;
+    DigitalInput *clutchSensor;
+    
     boolean isInitialized = false;
 
     union {
       unsigned char data[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
       BitFieldMember<0, 16> rpm;
+      BitFieldMember<61, 1> clutchPressed;
     } packet1;
 
     union {

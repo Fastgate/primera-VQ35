@@ -109,7 +109,7 @@ Acm acm;
 Hvac hvac;
 Bcm bcm;
 Ecm ecm(&clutchSensor, &brakeSensor, &neutralSensor, &keySensor, &bcm);
-Cluster cluster(19);
+Cluster cluster(19, &clutchSensor);
 
   /////////////////////////////
  // STEERING WHEEL CONTROLS //
