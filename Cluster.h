@@ -29,7 +29,7 @@ class Cluster {
             this->sendMessage(0x0551, sizeof(this->packet2), (uint8_t*)this->packet2.data);
             break;
           case (0x060D): // bcm
-            packet2.ignition = inputMessage.buf[0] & B01000000 == B01000000 ? 0xA0 : 0x20;
+            packet2.ignition = ((inputMessage.buf[0] & B01000000) == B01000000) ? 0xA0 : 0x20;
 
             this->sendMessage(0x0551, sizeof(this->packet2), (uint8_t*)this->packet2.data);
             this->sendMessage(0x060D, inputMessage.len, (uint8_t*)inputMessage.buf);
