@@ -34,6 +34,8 @@ public:
     this->climateControl->payload()->desiredTemperature   = 21 * 2;
     this->climateControl->payload()->isAirductAuto        = false;
 
+    SPI.begin();
+
     this->setAirduct(1);
     this->setFanLevel(2);
     this->setTemperature(18);
