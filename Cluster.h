@@ -23,7 +23,8 @@ class Cluster {
       if (this->isInitialized) {
         this->packet1.clutchPressed = this->clutchSensor->getState();
         this->packet5.clutchPressed1 = this->clutchSensor->getState();
-                
+        this->packet1.clutchBrakePressed = this->clutchSensor->getState();
+                        
         switch (inputMessage.id) {
           case (0x023D): // ect/rpm
             this->packet1.rpm = (inputMessage.buf[4] * 256 + inputMessage.buf[3]) * 2.3 * 10;
@@ -34,22 +35,26 @@ class Cluster {
             this->sendMessage(0x0551, sizeof(this->packet2), (uint8_t*)this->packet2.data);
             break;
           case (0x060D): // bcm
-            packet2.ignition = ((inputMessage.buf[0] & B00000100) == B00000100) ? 0xA0 : 0x20;
-
-            packet5.ignOn = ((inputMessage.buf[1] & B00000100) == B00000100);
-            this->sendMessage(0x0216, sizeof(this->packet5), (uint8_t*)this->packet5.data);
-
-            this->sendMessage(0x0551, sizeof(this->packet2), (uint8_t*)this->packet2.data);
+            this->packet4.keyPresent = ((inputMessage.buf[1] & B00000110) == B00000110);
+            this->sendMessage(0x0351, sizeof(this->packet4), (uint8_t*)this->packet4.data);
+            packet2.ignition = ((inputMessage.buf[1] & B00000110) == B00000110) ? 0xA0 : 0x20;
+            packet3.IGNon = ((inputMessage.buf[1] & B00000110) == B00000110) ? 0xA0 : 0x20;
+            packet7.iGnOn = ((inputMessage.buf[1] & B00000110) == B00000110) ? 0xA0 : 0x80;
+            packet5.ignOn = ((inputMessage.buf[1] & B00000110) == B00000110);
+           
             this->sendMessage(0x060D, inputMessage.len, (uint8_t*)inputMessage.buf);
+            this->sendMessage(0x0216, sizeof(this->packet5), (uint8_t*)this->packet5.data);
+            this->sendMessage(0x0358, sizeof(this->packet3), (uint8_t*)this->packet3.data);
+            this->sendMessage(0x035D, sizeof(this->packet7), (uint8_t*)this->packet7.data);
+            this->sendMessage(0x0551, sizeof(this->packet2), (uint8_t*)this->packet2.data);
             break;
           case (0x0354): // ABS
             this->sendMessage(0x0354, inputMessage.len, (uint8_t*)inputMessage.buf);
             break;
           case (0x0358): // bcm
-            packet3.keyInsert = ((inputMessage.buf[0] & B00000001) == B00000001);
+            
+            packet3.keyInsert = ((inputMessage.buf[1] & B00000110) == B00000110);
             this->sendMessage(0x0358, sizeof(this->packet3), (uint8_t*)this->packet3.data);
-            packet4.keyPresent = ((inputMessage.buf[0] & B00000001) == B00000001);
-            this->sendMessage(0x0351, sizeof(this->packet4), (uint8_t*)this->packet4.data);
             break; 
           case (0x0233): // ect/rpm
             packet2.cruisecontrol = ((inputMessage.buf[3] & B00000010) == B00000010);
@@ -83,6 +88,7 @@ class Cluster {
       unsigned char data[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
       BitFieldMember<0, 16> rpm;
       BitFieldMember<61, 1> clutchPressed;
+      BitFieldMember<63, 1> clutchBrakePressed;
      } packet1;
 
     union // ID 0x0216
@@ -104,19 +110,41 @@ class Cluster {
     {
       unsigned char data[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
       BitFieldMember<7, 1> keyInsert;
+      BitFieldMember<24, 8> IGNon;
     } packet3; 
 
    union // ID 0x0351
     {
       unsigned char data[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-      BitFieldMember<47, 1> keyPresent;
-    } packet4;  
+      BitFieldMember<47, 1> keyPresent; 
+     } packet4;  
 
    union // ID 0x05C5
     {
       unsigned char data[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
       BitFieldMember<5, 1> parkingBrake;
-    } packet6;   
+    } packet6;
+
+   union // ID 0x035D
+    {
+      unsigned char data[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+      BitFieldMember<0, 8> iGnOn;
+    } packet7;  
+
+   
+
+/*
+ * ID 351:
+ * 39 = 
+ * 40 = blink Key Symbol
+ * 41 = Key Sybol
+ * 42 = beep tone
+ * 43 = other beep tone
+ * 44 = no Key (display)
+ * 
+ * /
+ */
+    
 };
 
 #endif

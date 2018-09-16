@@ -150,7 +150,7 @@ CanInput headlightSensor    (0x060D, 0, B00000110);
 CanInput runningLightSensor (0x060D, 0, B00000100);
 CanInput frontFogLight      (0x060D, 1, B00000001);
 CanInput ignitionAcc        (0x060D, 1, B00000010);
-CanInput ignitionOn         (0x060D, 1, B00000100);
+CanInput ignitionOn         (0x060D, 1, B00000110);
 CanInput cruiseControl      (0x0233, 3, B00000010);
 CanInput keyInSlot          (0x0358, 0, B00000001);
 
