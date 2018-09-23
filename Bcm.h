@@ -56,13 +56,14 @@ class Bcm {
       this->FRDoorSensor->update(canMessage);
       this->RLDoorSensor->update(canMessage);
       this->RRDoorSensor->update(canMessage);
-     
+           
     }
-    void update(void (*bcmCallback)(Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm)) {
+    void update(void (*bcmCallback)(Button *lockButton, Button *unlockButton, Button *headlightWasherButton,DigitalInput *blueSmirf , Bcm *bcm)) {
       this->lockButton->update();
       this->unlockButton->update();
       this->lockRelay->update();
       this->unlockRelay->update();
+      this->blueSmirf->getState();
 
       this->headlightWasherButton->update();
       this->headlightWasherRelay->update();
@@ -73,8 +74,13 @@ class Bcm {
       if (this->unlockButton->wasPressedTimesOrMore(1)) {
         this->isLocked = false;
       }
+      if (this->blueSmirf->getState()){
+        this->isLocked = true;
+      }else{
+        this->isLocked = false;
+      }
 
-      bcmCallback(this->lockButton, this->unlockButton, this->headlightWasherButton, this);
+      bcmCallback(this->lockButton, this->unlockButton, this->headlightWasherButton, this->blueSmirf, this);
     }
   private:
     Button *lockButton        = new Button(new DigitalInput(23),700);
@@ -85,6 +91,7 @@ class Bcm {
 
     Button *headlightWasherButton     = new Button(new DigitalInput(34, 20, LOW, INPUT));
     TimedOutput *headlightWasherRelay = new TimedOutput(new DigitalOutput(40));
+    DigitalInput *blueSmirf           = new DigitalInput(17, 20, HIGH, INPUT); // Bluetooth for Keyless Entry
   
     CanInput *FLDoorSensor            = new CanInput(0x060D, 0, B00001000);
     CanInput *FRDoorSensor            = new CanInput(0x060D, 0, B00010000);

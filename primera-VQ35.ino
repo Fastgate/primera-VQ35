@@ -531,7 +531,7 @@ void updateRearFog(){
  // BCM FUNCTIONS //
 ///////////////////
 
-void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm) {
+void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasherButton,DigitalInput *blueSmirf, Bcm *bcm) {
   acm.setHub(keySensor.getState());
 
   // headlight washer
@@ -540,7 +540,7 @@ void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasher
   }
 
   // car remote unlock button
-  if (unlockButton->wasPressedTimes(1)) {
+  if (unlockButton->wasPressedTimes(1) || blueSmirf->getState()) {
     acm.setOtg(true);
     sleep.cancelSleepRequest();
   }
@@ -549,7 +549,7 @@ void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasher
   }
 
   // car remote lock button
-  if (lockButton->wasPressedTimes(1)) {
+  if (lockButton->wasPressedTimes(1) || !blueSmirf->getState()) {
     if (bcm->isAnyDoorOpen()) {
         bcm->unlockDoors();
        

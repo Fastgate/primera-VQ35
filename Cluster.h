@@ -26,6 +26,21 @@ class Cluster {
         this->packet1.clutchBrakePressed = this->clutchSensor->getState();
                         
         switch (inputMessage.id) {
+          case (0x0002): //STRG
+            this->sendMessage(0x0002, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;
+          case (0x0160): 
+            this->sendMessage(0x0160, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;  
+          case (0x0182): // ECM
+            this->sendMessage(0x0182, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;
+          case (0x01F9): // ECM
+            this->sendMessage(0x01F9, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;
+          case (0x0215): 
+            this->sendMessage(0x0215, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;
           case (0x023D): // ect/rpm
             this->packet1.rpm = (inputMessage.buf[4] * 256 + inputMessage.buf[3]) * 2.3 * 10;
             this->packet2.coolantTemperature = inputMessage.buf[7];
@@ -33,6 +48,56 @@ class Cluster {
             this->sendMessage(0x0180, sizeof(this->packet1), (uint8_t*)this->packet1.data);
             this->sendMessage(0x0216, sizeof(this->packet5), (uint8_t*)this->packet5.data);
             this->sendMessage(0x0551, sizeof(this->packet2), (uint8_t*)this->packet2.data);
+            break;
+          case (0x0233): // ect/rpm
+            packet2.cruisecontrol = ((inputMessage.buf[3] & B00000010) == B00000010);
+            this->sendMessage(0x0551, sizeof(this->packet2), (uint8_t*)this->packet2.data);
+            break; 
+          case (0x0245): 
+            this->sendMessage(0x0245, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;
+          case (0x0280): 
+            this->sendMessage(0x0280, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;
+          case (0x0284): // ABS
+            this->sendMessage(0x0284, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;
+          case (0x0285): // ABS
+            this->sendMessage(0x0285, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;
+          case (0x0292): 
+            this->sendMessage(0x0292, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;
+          case (0x02DE): 
+            this->sendMessage(0x02DE, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;
+          case (0x0342):
+            this->sendMessage(0x0342, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;
+          case (0x0354): // ABS
+            this->sendMessage(0x0354, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;
+          case (0x0355): 
+            this->sendMessage(0x0355, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;
+          case (0x0358): // bcm
+            packet3.keyInsert = ((inputMessage.buf[1] & B00000110) == B00000110);
+            this->sendMessage(0x0358, sizeof(this->packet3), (uint8_t*)this->packet3.data);
+            break; 
+          case (0x0385): 
+            this->sendMessage(0x0385, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;
+          case (0x0421): // ECM
+            this->sendMessage(0x0421, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;
+          case (0x0512): 
+            this->sendMessage(0x0512, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;
+          case (0x054C): 
+            this->sendMessage(0x054C, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;
+          case (0x0580): // ABS
+            this->sendMessage(0x0580, inputMessage.len, (uint8_t*)inputMessage.buf);
             break;
           case (0x060D): // bcm
             this->packet4.keyPresent = ((inputMessage.buf[1] & B00000110) == B00000110);
@@ -48,18 +113,15 @@ class Cluster {
             this->sendMessage(0x035D, sizeof(this->packet7), (uint8_t*)this->packet7.data);
             this->sendMessage(0x0551, sizeof(this->packet2), (uint8_t*)this->packet2.data);
             break;
-          case (0x0354): // ABS
-            this->sendMessage(0x0354, inputMessage.len, (uint8_t*)inputMessage.buf);
+          case (0x0625): // IPDM
+            this->sendMessage(0x0625, inputMessage.len, (uint8_t*)inputMessage.buf);
             break;
-          case (0x0358): // bcm
-            
-            packet3.keyInsert = ((inputMessage.buf[1] & B00000110) == B00000110);
-            this->sendMessage(0x0358, sizeof(this->packet3), (uint8_t*)this->packet3.data);
-            break; 
-          case (0x0233): // ect/rpm
-            packet2.cruisecontrol = ((inputMessage.buf[3] & B00000010) == B00000010);
-            this->sendMessage(0x0551, sizeof(this->packet2), (uint8_t*)this->packet2.data);
-            break; 
+          case (0x0682): // BCM
+            this->sendMessage(0x0682, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;
+          case (0x06E2): // ABS
+            this->sendMessage(0x06E2, inputMessage.len, (uint8_t*)inputMessage.buf);
+            break;
           case (0x06F1): // bcm
             packet6.parkingBrake = ((inputMessage.buf[4] & B00010000) == B00010000);
             this->sendMessage(0x05C5, sizeof(this->packet6), (uint8_t*)this->packet6.data);
