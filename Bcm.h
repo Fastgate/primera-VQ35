@@ -91,7 +91,8 @@ class Bcm {
 
     Button *headlightWasherButton     = new Button(new DigitalInput(34, 20, LOW, INPUT));
     TimedOutput *headlightWasherRelay = new TimedOutput(new DigitalOutput(40));
-    DigitalInput *blueSmirf           = new DigitalInput(17, 20, HIGH, INPUT); // Bluetooth for Keyless Entry
+    DigitalInput *blueSmirf           = new DigitalInput(48, 20, HIGH, INPUT); // Bluetooth for Keyless Entry
+    // Bluesmirf Serial1 connection
   
     CanInput *FLDoorSensor            = new CanInput(0x060D, 0, B00001000);
     CanInput *FRDoorSensor            = new CanInput(0x060D, 0, B00010000);

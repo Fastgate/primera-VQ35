@@ -15,6 +15,43 @@
 #include "Ecm.h"
 #include "Cluster.h"
 
+#include <FastLED.h>
+#include "ledcontrol.h"
+
+#define NUM_LEDS1 52
+#define DATA_PIN1 50
+#define NUM_LEDS 52
+#define DATA_PIN 15
+#define NUM_LEDS2 52
+#define DATA_PIN2 50
+#define COLOR_ORDER GRB
+#define CHIPSET WS2812B
+#define BRIGHTNESS 155
+
+
+  //////////////
+ // NeoPixel //
+/////////////
+
+CRGB leds[NUM_LEDS];
+CRGB leds1[NUM_LEDS1];
+CRGB ledsMmi[NUM_LEDS2];
+
+PixelGroup<0, 1> dimmerButtonMinus(leds, &FastLED);
+PixelGroup<51, 1> dimmerButtonPlus(leds, &FastLED);
+
+PixelGroup<9, 21> rpmMeterScale(leds, &FastLED);
+PixelGroup<32, 1> rpmMeterNeedle(leds, &FastLED);
+PixelGroup<33, 1> shiftLight(leds, &FastLED);
+
+PixelGroup<34, 12> speedoScale(leds, &FastLED);
+PixelGroup<50, 1> speedoNeedle(leds, &FastLED);
+PixelGroup<30, 1> gearNumberDisplay(leds, &FastLED);
+PixelGroup<31, 1> synchroRevDisplay(leds, &FastLED);
+
+PixelGroup<46, 4> odometer(leds, &FastLED);
+PixelGroup<1, 9> boardComputer(leds, &FastLED);
+
 
   /////////////
  // HELPERS //
@@ -174,6 +211,27 @@ void setup() {
   //obd2.sendRequest(8, 23);
 
   cluster.setup(CAN_500KBPS, MCP_8MHZ);
+
+  // *********************** NeoPixel ************************
+
+  FastLED.addLeds<CHIPSET, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS);
+  FastLED.addLeds<CHIPSET, DATA_PIN1, COLOR_ORDER>(leds1, NUM_LEDS1);
+  FastLED.addLeds<CHIPSET, DATA_PIN2, COLOR_ORDER>(ledsMmi, NUM_LEDS2);
+  FastLED.setBrightness(BRIGHTNESS);
+
+  dimmerButtonMinus.set(CRGB::Blue);
+  dimmerButtonPlus.set(CRGB::Blue);
+
+  rpmMeterScale.set(CRGB::Purple);
+  rpmMeterNeedle.set(CRGB::Red);
+
+  speedoScale.set(CRGB::Purple);
+  speedoNeedle.set(CRGB::Red);
+  gearNumberDisplay.set(CRGB::Purple);
+  synchroRevDisplay.set(CRGB::Green);
+  
+  odometer.set(CRGB::Purple);
+  boardComputer.set(CRGB::DarkCyan);
 }
 
 
