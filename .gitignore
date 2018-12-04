@@ -1,0 +1,16 @@
+### Sloeber ###
+
+/Release/
+.settings/
+.cproject
+.project
+sloeber.ino.cpp
+spec.d
+
+### Visual Studio ###
+
+.vs/
+__vm/
+*.sln
+*.vcxproj
+*.vcxproj.filters
