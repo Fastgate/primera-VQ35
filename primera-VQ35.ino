@@ -17,6 +17,7 @@
 
 #include <FastLED.h>
 #include "ledcontrol.h"
+#include "ledeffects.h"
 
 #define NUM_LEDS1 52
 #define DATA_PIN1 50
@@ -52,6 +53,7 @@ PixelGroup<31, 1> synchroRevDisplay(leds, &FastLED);
 PixelGroup<46, 4> odometer(leds, &FastLED);
 PixelGroup<1, 9> boardComputer(leds, &FastLED);
 
+SweepEffect speedoEffect(CRGB::Red, 10);
 
   /////////////
  // HELPERS //
@@ -232,6 +234,9 @@ void setup() {
   
   odometer.set(CRGB::Purple);
   boardComputer.set(CRGB::DarkCyan);
+
+  speedoEffect.setTailLength(5);
+  speedoEffect.addGroup(&speedoScale);
 }
 
 
@@ -258,6 +263,7 @@ void loop() {
   
   sleep.update();
 
+  speedoEffect.update(&FastLED);
 }
 
 
