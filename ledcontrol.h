@@ -60,12 +60,12 @@ private:
 	uint8_t numGroups = 0;
 	PixelGroupDefinition * groups[10];
 	unsigned long lastUpdate = 0;
-	unsigned long updateTime = 1000 / 60;
+	unsigned long updateTime = 1000 / (float)60;
 	unsigned int ledCount = 0;
 	CFastLED * fastLed;
 public:
 	PixelEffect(uint8_t frameRate) {
-		this->updateTime = 1000 / frameRate;
+		this->updateTime = 1000 / (float)frameRate;
 		this->fastLed = fastLed;
 	}
 	virtual ~PixelEffect() {
@@ -89,7 +89,7 @@ public:
 				}
 			}
 			fastLed->show();
-			this->updateTime = millis();
+			this->lastUpdate = millis();
 		}
 	}
 	virtual void onUpdate(struct CRGB * pixel, unsigned int pixelIndex,

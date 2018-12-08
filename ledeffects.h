@@ -22,14 +22,14 @@ public:
 
 		if (pixelIndex >= this->currentPixel - this->tailLength
 				&& pixelIndex < this->currentPixel) {
-			factor = 1 - ((this->currentPixel - pixelIndex) / this->tailLength);
+			factor = 1 - ((this->currentPixel - pixelIndex) / (float)this->tailLength);
 		}
 
 		pixel->r = this->color.r * factor;
 		pixel->g = this->color.g * factor;
 		pixel->b = this->color.b * factor;
 
-		if (this->totalDeltaTime > 1000 / speed) {
+		if (this->totalDeltaTime > 1000 / (float)speed) {
 			if (this->currentPixel < pixelCount - 1) {
 				this->currentPixel++;
 			} else {
