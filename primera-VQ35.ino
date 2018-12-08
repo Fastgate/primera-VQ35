@@ -117,7 +117,6 @@ MmiLight mmiAllOff (0xFF, &mmi);
 DigitalInput illuminationSensor(37, 20, LOW, INPUT);
 Button illuminationDimUpButton(new DigitalInput(45, 20, LOW, INPUT), 0);
 Button illuminationDimDownButton(new DigitalInput(46, 20, LOW, INPUT), 0);
-AnalogOutput illuminationOutput(21);
 
 uint8_t desiredIlluminationLevel = 0xFF / 2;
 uint8_t illuminationLevel = 0x00;
@@ -509,7 +508,8 @@ void changeIllumination(bool newState, uint8_t newLevel) {
     illuminationLevel = newLevel;
 
     Serial.printf("Illumination %d.\r\n", illuminationLevel);
-    illuminationOutput.set(illuminationLevel);
+    FastLED.setBrightness(illuminationLevel);
+    FastLED.show();
     mmi.setIllumination(illuminationLevel);
     mmi.setHighlightLevel(max(0x46, illuminationLevel));
   }
