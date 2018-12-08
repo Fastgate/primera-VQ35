@@ -51,7 +51,7 @@ class PixelGroup : public PixelGroupDefinition {
     }
 
     struct CRGB * getLed(int index) {
-      return &this->leds[index];
+      return &this->leds[START_INDEX + index];
     }
 };
 

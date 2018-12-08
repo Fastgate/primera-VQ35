@@ -21,7 +21,7 @@ public:
 		float factor = 0;
 
 		if (pixelIndex >= this->currentPixel - this->tailLength
-				&& pixelIndex < this->currentPixel) {
+				&& pixelIndex <= this->currentPixel) {
 			factor = 1 - ((this->currentPixel - pixelIndex) / (float)this->tailLength);
 		}
 
