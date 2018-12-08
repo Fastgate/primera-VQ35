@@ -68,7 +68,8 @@ public:
 		this->updateTime = 1000 / frameRate;
 		this->fastLed = fastLed;
 	}
-	virtual ~PixelEffect() {};
+	virtual ~PixelEffect() {
+	}
 	void addGroup(PixelGroupDefinition * group) {
 		this->groups[this->numGroups] = group;
 		this->numGroups++;
@@ -79,16 +80,20 @@ public:
 		if (deltaTime >= this->updateTime) {
 			unsigned int pixelIndex = 0;
 			for (PixelGroupDefinition * group : this->groups) {
-				for (int i = 0; i < group->getLedCount(); i++) {
-					onUpdate(group->getLed(i), pixelIndex, this->ledCount, deltaTime);
+				if (group != NULL) {
+					for (int i = 0; i < group->getLedCount(); i++) {
+						onUpdate(group->getLed(i), pixelIndex, this->ledCount,
+								deltaTime);
+						pixelIndex++;
+					}
 				}
-				pixelIndex++;
 			}
 			fastLed->show();
 			this->updateTime = millis();
 		}
 	}
-	virtual void onUpdate(struct CRGB * pixel, unsigned int pixelIndex, unsigned int pixelCount, unsigned long deltaTime) = 0;
+	virtual void onUpdate(struct CRGB * pixel, unsigned int pixelIndex,
+			unsigned int pixelCount, unsigned long deltaTime) = 0;
 };
 
 #endif
