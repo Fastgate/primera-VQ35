@@ -68,9 +68,9 @@ public:
 		(void)(deltaTime);
 		float factor = 0;
 
-		if (pixelIndex >= constrain((long)this->currentPixel - this->tailLength, 0, this->currentPixel)
+		if (this->currentPixel - pixelIndex <= this->tailLength
 				&& pixelIndex <= this->currentPixel) {
-			factor = 1 - ((this->currentPixel - pixelIndex) / (float)this->tailLength); //(this->tailLength - (this->currentPixel - pixelIndex)) / (float) this->tailLength;
+			factor = 1 - ((this->currentPixel - pixelIndex) / (float)this->tailLength);
 		}
 
 		pixel->r = this->color.r * factor;
