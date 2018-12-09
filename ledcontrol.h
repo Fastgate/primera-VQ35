@@ -78,22 +78,28 @@ public:
 	void update(CFastLED * fastLed) {
 		unsigned long deltaTime = millis() - lastUpdate;
 		if (deltaTime >= this->updateTime) {
+			this->beforeFrame(this->ledCount, deltaTime);
 			unsigned int pixelIndex = 0;
 			for (PixelGroupDefinition * group : this->groups) {
 				if (group != NULL) {
 					for (int i = 0; i < group->getLedCount(); i++) {
-						onUpdate(group->getLed(i), pixelIndex, this->ledCount,
+						onFrame(group->getLed(i), pixelIndex, this->ledCount,
 								deltaTime);
 						pixelIndex++;
 					}
 				}
 			}
+			this->afterFrame(this->ledCount, deltaTime);
 			fastLed->show();
 			this->lastUpdate = millis();
 		}
 	}
-	virtual void onUpdate(struct CRGB * pixel, unsigned int pixelIndex,
+	virtual void beforeFrame(unsigned int pixelCount,
+			unsigned long deltaTime) = 0;
+	virtual void onFrame(struct CRGB * pixel, unsigned int pixelIndex,
 			unsigned int pixelCount, unsigned long deltaTime) = 0;
+	virtual void afterFrame(unsigned int pixelCount,
+			unsigned long deltaTime) = 0;
 };
 
 #endif
