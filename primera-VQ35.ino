@@ -22,7 +22,7 @@
 #define NUM_LEDS1 52
 #define DATA_PIN1 50
 #define NUM_LEDS 52
-#define DATA_PIN 15
+#define DATA_PIN 0
 #define NUM_LEDS2 52
 #define DATA_PIN2 50
 #define COLOR_ORDER GRB
@@ -54,6 +54,7 @@ PixelGroup<46, 4> odometer(leds, &FastLED);
 PixelGroup<1, 9> boardComputer(leds, &FastLED);
 
 SweepEffect speedoEffect(CRGB::Red, 10);
+SweepEffect rpmMeterScaleEffect(CRGB::Red, 10);
 
   /////////////
  // HELPERS //
@@ -225,6 +226,7 @@ void setup() {
 
   rpmMeterScale.set(CRGB::Purple);
   rpmMeterNeedle.set(CRGB::Red);
+  shiftLight.set(CRGB::Blue);
 
   speedoScale.set(CRGB::Purple);
   speedoNeedle.set(CRGB::Red);
@@ -236,6 +238,8 @@ void setup() {
 
   speedoEffect.setTailLength(5);
   speedoEffect.addGroup(&speedoScale);
+  rpmMeterScaleEffect.setTailLength(5);
+  rpmMeterScaleEffect.addGroup(&rpmMeterScale);
 }
 
 
@@ -263,6 +267,7 @@ void loop() {
   sleep.update();
 
   speedoEffect.update(&FastLED);
+  rpmMeterScaleEffect.update(&FastLED);
 }
 
 
@@ -498,7 +503,7 @@ void updateIllumination() {
     desiredIlluminationLevel = max(46, (desiredIlluminationLevel - 0xFF / 16));
   }
 
-  changeIllumination(runningLightSensor.getState(), desiredIlluminationLevel);
+  changeIllumination(illuminationSensor.getState(), desiredIlluminationLevel);
 }
 
 void changeIllumination(bool newState, uint8_t newLevel) {
