@@ -1,23 +1,27 @@
 #ifndef CLUSTER_H
 #define CLUSTER_H
 
-#include <mcp2515.h>
+#include <mcp_can.h>
 #include "bitfield.h"
 
 class Cluster {
   public:
     Cluster(uint8_t csPin, DigitalInput *clutchSensor) {
-      this->can = new MCP2515(csPin);
+      this->can = new MCP_CAN(csPin);
       this->clutchSensor = clutchSensor;
     }
     ~Cluster() {
       delete this->can;
     }
-    boolean setup(CAN_SPEED speed, CAN_CLOCK clock) {
-      this->can->reset();
-      this->can->setBitrate(speed, clock);
-      this->isInitialized = this->can->setNormalMode() == MCP2515::ERROR_OK;
-      return this->isInitialized;
+    boolean setup(uint8_t mode, uint8_t speed, uint8_t clock) {
+    	uint8_t canStatus = this->can->begin(mode, speed, clock);
+    	if (canStatus == CAN_OK) {
+    		this->can->setMode(MCP_NORMAL);
+    		this->isInitialized = true;
+		} else {
+			this->isInitialized = false;
+		}
+		return this->isInitialized;
     }
     void updateCan(CAN_message_t inputMessage) {
       if (this->isInitialized) {
@@ -131,16 +135,11 @@ class Cluster {
     }
   private:
     boolean sendMessage(uint32_t can_id, uint8_t can_dlc, uint8_t* data) {
-      struct can_frame message;
-      message.can_id = can_id;
-      message.can_dlc = can_dlc;
-      for (uint8_t i = 0; i < can_dlc && i < 8; i++) {
-        message.data[i] = data[i];
-      }
-      return this->can->sendMessage(&message) == MCP2515::ERROR_OK;
+      uint8_t result = this->can->sendMsgBuf(can_id, can_dlc, data);
+      return result == CAN_OK;
     }
   
-    MCP2515* can;
+    MCP_CAN* can;
     DigitalInput *clutchSensor;
     
     boolean isInitialized = false;

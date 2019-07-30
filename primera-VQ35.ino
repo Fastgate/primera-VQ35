@@ -1,5 +1,4 @@
 #include <SPI.h>
-#include <mcp2515.h>
 #include <FlexCAN.h>
 #include <arduinoIO.h>
 #include <arduinoMmi.h>
@@ -212,7 +211,7 @@ void setup() {
 
   //obd2.sendRequest(8, 23);
 
-  cluster.setup(CAN_500KBPS, MCP_8MHZ);
+  cluster.setup(MCP_ANY, CAN_500KBPS, MCP_8MHZ);
 
   // *********************** NeoPixel ************************
 
