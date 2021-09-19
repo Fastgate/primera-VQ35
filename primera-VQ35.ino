@@ -1,668 +1,403 @@
-#include <SPI.h>
-#include <mcp2515.h>
-#include <FlexCAN.h>
+#include <Arduino.h>
+#include <carduinotest.h>
+#include "can.h"
 #include <arduinoIO.h>
-#include <arduinoMmi.h>
-
-#include "Binary.h"
-#include "Serial.h"
-#include "Hvac.h"
-#include "Sleep.h"
-#include "Can.h"
-
-#include "Acm.h"
 #include "Bcm.h"
 #include "Ecm.h"
-#include "Cluster.h"
 
-#include <FastLED.h>
-#include "ledcontrol.h"
-#include "ledeffects.h"
+#define combineUint16(L, H) (H * 256 + L)
+#define highUint16(V) (V >> 8)
+#define lowUint16(V) (V & 0xFF)
+#define CAN_WRITE_INTERVAL 100
 
-#define NUM_LEDS1 52
-#define DATA_PIN1 50
-#define NUM_LEDS 52
-#define DATA_PIN 0
-#define NUM_LEDS2 52
-#define DATA_PIN2 50
-#define COLOR_ORDER GRB
-#define CHIPSET WS2812B
-#define BRIGHTNESS 155
+void canCallback(const CAN_message_t &message);
+void onCarduinoSerialTimeout();
+void onCarduinoSerialEvent(uint8_t type, uint8_t id, BinaryBuffer *payloadBuffer);
+void shiftGauge();
+void canWrite();
 
-
-  //////////////
- // NeoPixel //
-/////////////
-
-CRGB leds[NUM_LEDS];
-CRGB leds1[NUM_LEDS1];
-CRGB ledsMmi[NUM_LEDS2];
-
-PixelGroup<0, 1> dimmerButtonMinus(leds, &FastLED);
-PixelGroup<51, 1> dimmerButtonPlus(leds, &FastLED);
-
-PixelGroup<9, 21> rpmMeterScale(leds, &FastLED);
-PixelGroup<32, 1> rpmMeterNeedle(leds, &FastLED);
-PixelGroup<33, 1> shiftLight(leds, &FastLED);
-
-PixelGroup<34, 12> speedoScale(leds, &FastLED);
-PixelGroup<50, 1> speedoNeedle(leds, &FastLED);
-PixelGroup<30, 1> gearNumberDisplay(leds, &FastLED);
-PixelGroup<31, 1> synchroRevDisplay(leds, &FastLED);
-
-PixelGroup<46, 4> odometer(leds, &FastLED);
-PixelGroup<1, 9> boardComputer(leds, &FastLED);
-
-SweepEffect speedoEffect(CRGB::Red, 10);
-SweepEffect rpmMeterScaleEffect(CRGB::Red, 10);
-
-  /////////////
- // HELPERS //
-/////////////
-
-#define min(X, Y)  ((X) < (Y) ? (X) : (Y))
-#define max(X, Y)  ((X) > (Y) ? (X) : (Y))
+u_int8_t transferFlag(uint8_t sourceValue, uint8_t sourceMask, uint8_t targetValue, uint8_t targetMask);
+bool readFlag(uint8_t value, uint8_t mask);
+uint8_t setFlag(uint8_t value, uint8_t mask);
+uint8_t clearFlag(uint8_t value, uint8_t mask);
 
 
-  /////////////////////
- // MMI DEFINITIONS //
-/////////////////////
+DigitalInput pnpSwitch(26, 20, HIGH, INPUT);
+DigitalInput reverseSwitch(27, 20, HIGH, INPUT);
+//DigitalInput bluetoothConnect(2, 20, HIGH, INPUT);
 
-SerialDataPacket<uint8_t> _MmiAndroidPacket(0x73, 0x72);
+Button rearFogButton(new AnalogInput(A10, 250, 700), 0);
+DigitalInput ClutchSwitchButton(28, 20, HIGH, INPUT);
 
-
-// Buttons
-Mmi mmi(&Serial3, SERIAL_8N2_RXINV, 16, 17, 2);
-MmiButton *mmiBigWheelButton    = mmi.createButton(0x01);
-MmiButton *mmiMediaButton       = mmi.createButton(0x02);
-MmiButton *mmiNameButton        = mmi.createButton(0x03);
-MmiButton *mmiTelButton         = mmi.createButton(0x04);
-MmiButton *mmiNavButton         = mmi.createButton(0x05);
-MmiButton *mmiInfoButton        = mmi.createButton(0x06);
-MmiButton *mmiCarButton         = mmi.createButton(0x07);
-MmiButton *mmiSetupButton       = mmi.createButton(0x08);
-MmiButton *mmiTopLeftButton     = mmi.createButton(0x0A);
-MmiButton *mmiBottomLeftButton  = mmi.createButton(0x0B);
-MmiButton *mmiPreviousButton    = mmi.createButton(0x0C);
-MmiButton *mmiTopRightButton    = mmi.createButton(0x0D);
-MmiButton *mmiBottomRightButton = mmi.createButton(0x0E);
-MmiButton *mmiReturnButton      = mmi.createButton(0x0F);
-MmiButton *mmiNextButton        = mmi.createButton(0x10);
-MmiButton *mmiRadioButton       = mmi.createButton(0x18);
-MmiButton *mmiSmallWheelButton  = mmi.createButton(0x38);
-
-// Wheels
-MmiWheel *mmiSmallWheel = mmi.createWheel(0x40);
-MmiWheel *mmiBigWheel   = mmi.createWheel(0x50);
-
-// Lights
-MmiLight mmiMediaLight(0x02, &mmi);
-MmiLight mmiNameLight(0x03, &mmi);
-MmiLight mmiTelLight(0x04, &mmi);
-MmiLight mmiNavLight(0x05, &mmi);
-MmiLight mmiInfoLight(0x06, &mmi);
-MmiLight mmiCarLight(0x07, &mmi);
-MmiLight mmiSetupLight(0x08, &mmi);
-MmiLight mmiTopLeftLight(0x0A, &mmi);
-MmiLight mmiBottomLeftLight(0x0B, &mmi);
-MmiLight mmiTopRightLight(0x0D, &mmi);
-MmiLight mmiBottomRightLight(0x0E, &mmi);
-MmiLight mmiRadioLight(0x18, &mmi);
-MmiLight mmiAllOff (0xFF, &mmi);
-
-
-  //////////////////////////////
- // ILLUMINATION DEFINITIONS //
-//////////////////////////////
-
-DigitalInput illuminationSensor(37, 20, LOW, INPUT);
-Button illuminationDimUpButton(new DigitalInput(45, 20, LOW, INPUT), 0);
-Button illuminationDimDownButton(new DigitalInput(46, 20, LOW, INPUT), 0);
-
-uint8_t desiredIlluminationLevel = 0xFF / 2;
-uint8_t illuminationLevel = 0x00;
-bool illuminationState = false;
-
-
-  ////////////////////
- // Rear Fog Light //
-////////////////////
-
-Button rearFogButton(new AnalogInput(A19, 220, 400), 0);
-
-
-
-
-  ////////////////////////////
- // CAR MODULE DEFINITIONS //
-////////////////////////////
-
-DigitalInput clutchSensor(16, 20, HIGH, INPUT);
-//DigitalInput brakeSensor(17, 20, HIGH, INPUT);
-DigitalInput neutralSensor(36, 20, HIGH, INPUT);
-DigitalInput keySensor(6, 20, HIGH, INPUT_PULLUP);
-CanInput brakeSensor(0x06F1, 4, B01000000);
-
-Sleep sleep(22, 10 * 60 * 1000);
-Acm acm;
-Hvac hvac;
-Bcm bcm;
-Ecm ecm(&clutchSensor, &brakeSensor, &neutralSensor, &keySensor, &bcm);
-Cluster cluster(19, &clutchSensor);
-
-  /////////////////////////////
- // STEERING WHEEL CONTROLS //
-/////////////////////////////
-
-Button swcVolumeUpButton(new AnalogInput(A11, 90, 98), 0);
-Button swcVolumeDownButton(new AnalogInput(A10, 90, 98), 0);
-Button swcPhoneButton(new AnalogInput(A11, 2, 4), 0);
-Button swcVoiceButton(new AnalogInput(A10, 2, 4), 0);
-Button swcSeekUpButton(new AnalogInput(A11, 24, 29), 0);
-Button swcSeekDownButton(new AnalogInput(A10, 24, 29), 0);
-
-
-//************************** Primera STW Inputs *******************************
-
-
-
-  ////////////////////////
- // SERIAL DEFINITIONS //
-////////////////////////
-
-SerialPacket statusInitSuccess(0x61, 0x01);
-SerialPacket statusInitError(0x65, 0x01);
-SerialDataPacket<unsigned long> baudRateChange(0x65, 0x01);
-
-SerialReader serialReader(128);
-
-
-  /////////////////////////
- // CAN BUS DEFINITIONS //
-/////////////////////////
-
-CanSniffer canSniffer;
-Obd2Helper obd2;
-
-CanInput handbrakeSensor    (0x06F1, 4, B00010000);
-CanInput headlightSensor    (0x060D, 0, B00000110);
+CanInput headlightSensor    (0x060D, 0, B00000110);  
 CanInput runningLightSensor (0x060D, 0, B00000100);
 CanInput frontFogLight      (0x060D, 1, B00000001);
+CanInput rearFogLight       (0x0358, 4, B10000000); 
+CanInput handbrakeSensor    (0x06F1, 4, B00010000);
 CanInput ignitionAcc        (0x060D, 1, B00000010);
 CanInput ignitionOn         (0x060D, 1, B00000110);
-CanInput cruiseControl      (0x0233, 3, B00000010);
-CanInput keyInSlot          (0x0358, 0, B00000001);
+CanInput brakeSensor        (0x06F1, 4, B01000000);
+CanInput keySensor          (0x0358, 0, B00000001);
+
+void updateRearFog();
+void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm);
+Bcm bcm;
+Ecm ecm(&ClutchSwitchButton, &brakeSensor, &pnpSwitch,  &keySensor, &bcm);
 
 
-  //////////////////
- // SKETCH SETUP //
-//////////////////
+
+
+Can can(&Serial);
+Carduino carduino(&Serial, onCarduinoSerialEvent, onCarduinoSerialTimeout);
+
+uint32_t lastCanWrite = 0;
+
+/////////////////////////This Can message are modify://///////////////////////// 
+// ID 0x0180
+// ID 0x0551
+///////////////////////////////////////////////////////////////////////////////
+
+
+CAN_message_t message0002;
+CAN_message_t message0160;
+CAN_message_t message0180;
+CAN_message_t message0182;
+CAN_message_t message01F9;
+CAN_message_t message0215;
+CAN_message_t message0216;
+CAN_message_t message0233;
+CAN_message_t message0245;
+CAN_message_t message0280;
+CAN_message_t message02DE;
+CAN_message_t message0351;
+CAN_message_t message0354;
+CAN_message_t message0355;
+CAN_message_t message0358;
+CAN_message_t message0385;
+CAN_message_t message035D;
+CAN_message_t message0421;
+CAN_message_t message0551;
+CAN_message_t message0580;
+CAN_message_t message05C5;
+CAN_message_t message0625;
+CAN_message_t message0682;
+CAN_message_t message060D;
+CAN_message_t message06F1;
+
+
+
+
 
 void setup() {
-  Serial.begin(115200);
-  statusInitSuccess.serialize(Serial);
 
-  
+  carduino.begin();
 
-  // *********************** Primera STW Inputs ************************
+  Serial.begin(9600);
+  //Serial2.begin(9600);
 
-  Keyboard.begin();
+  can.setup(500000, 500000);
 
-  Can0.begin(500000);
+  // Add all can packets that should be redirected without change
+  can.addCanId(0x0002);
+  can.addCanId(0x0160);
+  //can.addCanId(0x0180);
+  can.addCanId(0x0182);
+  can.addCanId(0x01F9);
+  can.addCanId(0x0215);
+  can.addCanId(0x0216);
+  can.addCanId(0x0233);
+  can.addCanId(0x0245);
+  can.addCanId(0x0280);
+  can.addCanId(0x0284);
+  can.addCanId(0x0285);
+  can.addCanId(0x0292);
+  can.addCanId(0x023D);
+  can.addCanId(0x02DE);
+  can.addCanId(0x0342);
+  can.addCanId(0x0351);
+  can.addCanId(0x0354);
+  can.addCanId(0x0355);
+  //can.addCanId(0x0358);
+  //can.addCanId(0x0385);
+  //can.addCanId(0x0421);
+  can.addCanId(0x0512);
+  can.addCanId(0x054C);
+  can.addCanId(0x0580);
 
-  //obd2.sendRequest(8, 23);
+  can.addCanId(0x0625);
+  can.addCanId(0x060D);
+  can.addCanId(0x0682);
+  can.addCanId(0x06E2);
+  can.addCanId(0x06F1);
 
-  cluster.setup(CAN_500KBPS, MCP_8MHZ);
+///////////// initialize composed packets /////////////////////////
 
-  // *********************** NeoPixel ************************
+  message0002.id = 0x0002;
+  message0002.len = 8;
 
-  FastLED.addLeds<CHIPSET, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS);
-  FastLED.addLeds<CHIPSET, DATA_PIN1, COLOR_ORDER>(leds1, NUM_LEDS1);
-  FastLED.addLeds<CHIPSET, DATA_PIN2, COLOR_ORDER>(ledsMmi, NUM_LEDS2);
-  FastLED.setBrightness(BRIGHTNESS);
+  message0160.id = 0x0160;
+  message0160.len = 8;
 
-  dimmerButtonMinus.set(CRGB::Blue);
-  dimmerButtonPlus.set(CRGB::Blue);
+  message0180.id = 0x0180;
+  message0180.len = 8;
 
-  rpmMeterScale.set(CRGB::Purple);
-  rpmMeterNeedle.set(CRGB::Red);
-  shiftLight.set(CRGB::Blue);
+  message0182.id = 0x0182;
+  message0182.len = 8;
 
-  speedoScale.set(CRGB::Purple);
-  speedoNeedle.set(CRGB::Red);
-  gearNumberDisplay.set(CRGB::Purple);
-  synchroRevDisplay.set(CRGB::Green);
-  
-  odometer.set(CRGB::Purple);
-  boardComputer.set(CRGB::DarkCyan);
+  message01F9.id = 0x01F9;
+  message01F9.len = 8;
 
-  speedoEffect.setTailLength(5);
-  speedoEffect.addGroup(&speedoScale);
-  rpmMeterScaleEffect.setTailLength(5);
-  rpmMeterScaleEffect.addGroup(&rpmMeterScale);
+  message0215.id = 0x0215;
+  message0215.len = 8;
+
+  message0216.id = 0x0216;
+  message0216.len = 8;
+
+  message0233.id = 0x0233;
+  message0233.len = 8;
+
+  message0245.id = 0x0245;
+  message0245.len = 8;
+
+  message0280.id = 0x0280;
+  message0280.len = 8;
+
+  message02DE.id = 0x02DE;
+  message02DE.len = 8;
+
+  message0351.id = 0x0351;
+  message0351.len = 8;
+
+  message0354.id = 0x0354;
+  message0354.len = 8;
+
+  message0355.id = 0x0355;
+  message0355.len = 8;
+
+  message0358.id = 0x0358;
+  message0358.len = 8;
+
+  message0385.id = 0x0385;
+  message0385.len = 8;
+
+  message035D.id = 0x035D;
+  message035D.len = 8;
+
+  message0421.id = 0x0421;
+  message0421.len = 8;
+
+  message0551.id = 0x0551;
+  message0551.len = 8;
+
+  message0580.id = 0x0580;
+  message0580.len = 8;
+
+  message05C5.id = 0x05C5;
+  message05C5.len = 8;
+
+  message0625.id = 0x0625;
+  message0625.len = 8;
+
+  message0682.id = 0x0682;
+  message0682.len = 8;
+
+  message060D.id = 0x060D;
+  message060D.len = 8;
+
+  message06F1.id = 0x06F1;
+  message06F1.len = 8;
+
+  can.startSniffer();
+
+ 
+ 
 }
 
-
-  /////////////////
- // SKETCH LOOP //
-/////////////////
-
 void loop() {
-  updateCan();
-  
-  updateMmi();
-  
-  updateIllumination();
+  if (carduino.update()) {
+    //can.update(canCallback);
+  }   
+  can.update(canCallback);
+
+  bcm.update(updateBcm); 
 
   ecm.update();
 
-  updateSwc();
-
+  shiftGauge(); 
+  
   updateRearFog();
 
-  bcm.update(updateBcm);
+ 
+  if (millis() - lastCanWrite > CAN_WRITE_INTERVAL) {
+    canWrite();
+    lastCanWrite = millis();
+  }
+ 
+}
 
-  hvac.update();
+void canCallback(const CAN_message_t &message) {
+
+  headlightSensor.updateCan(message);
+  runningLightSensor.updateCan(message);
+  frontFogLight.updateCan(message);
+  rearFogLight.updateCan(message);
+  handbrakeSensor.updateCan(message);
+  ignitionAcc.updateCan(message);
+  ignitionOn.updateCan(message);
+  brakeSensor.updateCan(message);
+  keySensor.updateCan(message);
   
-  sleep.update();
+   
+  switch (message.id) {
+    case (0x023D):{
+      uint16_t rpm = combineUint16(message.buf[3], message.buf[4]) * 2.3 * 10;
+      message0180.buf[0] = highUint16(rpm);
+      message0180.buf[1] = lowUint16(rpm);
 
-  speedoEffect.update(&FastLED);
-  rpmMeterScaleEffect.update(&FastLED);
-}
-
-
-  //////////////////
- // SERIAL EVENT //
-//////////////////
-
-void serialEvent() {
-  serialReader.read(Serial, readSerial);
-}
-
-void readSerial(uint8_t type, uint8_t id, BinaryBuffer *payloadBuffer) {
-  switch (type) {
-    case 0x61:
-      switch (id) {
-        case 0x0a: // start sniffer
-          canSniffer.toggle(true);
-          break;
-        case 0x0b: // stop sniffer
-          canSniffer.toggle(false);
-          break;
-        case 0x72: { // set baud rate
-            BinaryData::LongResult result = payloadBuffer->readLong();
-            if (result.state == BinaryData::OK) {
-              baudRateChange.payload(htonl(result.data));
-              baudRateChange.serialize(Serial);
-              Serial.flush();
-              Serial.end();
-              Serial.begin(result.data);
-              while (Serial.available()) {
-                Serial.read();
-              }
-            }
-            break;
-          }
+      message0551.buf[0] = message.buf[7];
+      
+      can.write(message0180);
+      can.write(message0551);
+      
       }
       break;
-    case 0x63:
-      hvac.write(id, payloadBuffer);
-      break;
-  }
-}
+    //case (0x060D):
 
-
-  ///////////////////
- // MMI FUNCTIONS //
-///////////////////
-
-void updateMmi() {
-  mmi.update(mmiEvent);
-  
-  
-  if (mmiNavButton->wasPressedTimes(1)) {
-     mmiAllOff.off();
-     mmiNavLight.on();
-     _MmiAndroidPacket.payload(1);
-     _MmiAndroidPacket.serialize(Serial);
-  }
-  if (mmiInfoButton->wasPressedTimes(1)) {
-     mmiAllOff.off();
-     mmiInfoLight.on();
-     _MmiAndroidPacket.payload(2);
-     _MmiAndroidPacket.serialize(Serial);
-  }
-  if (mmiInfoButton->wasPressedFor(1000)) {
-     mmiAllOff.off();
-     mmiInfoLight.on();
-     _MmiAndroidPacket.payload(42);
-     _MmiAndroidPacket.serialize(Serial);
-  }
-  if (mmiCarButton->wasPressedTimes(1)) {
-     mmiAllOff.off();
-     mmiCarLight.on();
-     _MmiAndroidPacket.payload(3);
-     _MmiAndroidPacket.serialize(Serial);
-  }
-  if (mmiSetupButton->wasPressedTimes(1)) {
-     mmiAllOff.off();
-     mmiSetupLight.on();   
-  }
-  if (mmiSetupButton->wasHeldFor(500)) {
-     mmiAllOff.off();
-     _MmiAndroidPacket.payload(4);
-     _MmiAndroidPacket.serialize(Serial);
-  }
-  if (mmiRadioButton->wasPressedTimes(1)) {
-     mmiAllOff.off();
-     mmiRadioLight.on();
-  }
-  if (mmiMediaButton->wasPressedTimes(1)) {
-      mmiAllOff.off();
-      mmiMediaLight.on();
-     _MmiAndroidPacket.payload(6);
-     _MmiAndroidPacket.serialize(Serial);
-  }
-  if (mmiMediaButton->wasPressedTimes(1) && mmiSetupButton->wasPressedTimes(1)) {
-      mmiAllOff.off();
-      mmiMediaLight.on();
-     _MmiAndroidPacket.payload(20);
-     _MmiAndroidPacket.serialize(Serial);
-    }
-  if (mmiNameButton->wasPressedTimes(1)) {
-      mmiAllOff.off();
-      mmiNameLight.on();
-     _MmiAndroidPacket.payload(7);
-     _MmiAndroidPacket.serialize(Serial);
-  }
-  if (mmiTelButton->wasPressedTimes(1)) {
-     mmiAllOff.off();
-     mmiTelLight.on();
-  }
-  if (mmiTopLeftButton->wasPressedTimes(1)) {
-     //mmiAllOff.off();
-     mmiTopLeftLight.toggle();
-  }
-  if (mmiTopRightButton->wasPressedTimes(1)) {
-     mmiAllOff.off();
-     //mmiTopRightLight.toggle();
-      Keyboard.press(KEY_HOME); 
-     Keyboard.release(KEY_HOME); 
-     Keyboard.press(KEY_HOME); 
-     Keyboard.release(KEY_HOME); 
-  }
-  if (mmiBottomLeftButton->wasPressedTimes(1)) {
-     mmiBottomLeftLight.toggle();
-  }
-  if (mmiBottomRightButton->wasPressedTimes(1)) {
-     mmiBottomRightLight.toggle();
-  }
-  if (mmiPreviousButton->wasPressedTimes(1)) {
-     Keyboard.press(KEY_MEDIA_PREV_TRACK);
-     Keyboard.release(KEY_MEDIA_PREV_TRACK);
-  }
-  if (mmiReturnButton->wasHeldFor(500))  {
-     Keyboard.press(KEY_BACKSPACE); 
-     Keyboard.release(KEY_BACKSPACE);
-     Keyboard.release(KEY_LEFT_ALT);
-  }
-
-  if (mmiReturnButton->wasPressedFor(1000))  {
-     Keyboard.press(KEY_DELETE); 
-     Keyboard.release(KEY_DELETE);
-     Keyboard.release(KEY_LEFT_ALT);
-  }
-  if (mmiReturnButton->wasPressedTimes(1)) {
-     Keyboard.press(KEY_ESC);
-     Keyboard.release(KEY_ESC);
-     Keyboard.release(KEY_LEFT_ALT);
-  }
-  if (mmiNextButton->wasPressedTimes(1)) {
-     Keyboard.press(KEY_MEDIA_NEXT_TRACK);
-     Keyboard.release(KEY_MEDIA_NEXT_TRACK);
-  }
-  if (mmiNextButton->wasPressedTimes(2)) {
-     Keyboard.press(KEY_MEDIA_PLAY_SKIP);
-     Keyboard.release(KEY_MEDIA_PLAY_SKIP);
-  }
-
-  if (mmiBigWheel->wasTurned()) {
-    if (mmiBigWheel->getAmount() < 0) {
-      Keyboard.press(MODIFIERKEY_SHIFT);
-      Keyboard.press(KEY_TAB);
-      Keyboard.release(KEY_TAB);
-      Keyboard.release(MODIFIERKEY_SHIFT);
-    }
-    else {
-      Keyboard.press(KEY_TAB);
-      Keyboard.release(KEY_TAB);
-    }
-  }
-  if (mmiBigWheelButton->wasPressedTimes(1)) {
-      Keyboard.press(KEY_MEDIA_PLAY_PAUSE);
-      Keyboard.press(KEY_ENTER);
-      Keyboard.release(KEY_MEDIA_PLAY_PAUSE);
-      Keyboard.release(KEY_ENTER);
-      Keyboard.release(KEY_LEFT_ALT);
-  }
-  if (mmiBigWheelButton-> wasPressedFor(1000)) {
-     mmiAllOff.off();
-     Keyboard.press(KEY_LEFT_ALT);
-     Keyboard.press(KEY_TAB);
-     Keyboard.release(KEY_TAB);
+      
+      //message0351.buf[5] = B00001111; //Push Brake and Start Button to drive
+      //message0358.buf[4] = B10000000; // Rear Fog Lamp
+      //message0358.buf[1] = B00011000;
+      //message0358.buf[0] = B00000001;
      
-    
-  }
+      //message0358.buf[3] = B00100000;
+      //message0385.buf[0] = B00000010;  // TPMS ERROR
+      
+      //can.write(message0358);
+      //can.write(message0385);
+      
+      //}else{
+        // message0358.buf[4] = B00000000;
+      
+      //can.write(message0358);
+       // }
+      //break;
+      
+      case (0x0233):
 
-  if (mmiSmallWheel->wasTurned()) {
-    if (mmiSmallWheel->getAmount() < 0) {
-      Keyboard.press(KEY_MEDIA_VOLUME_DEC);
-      Keyboard.release(KEY_MEDIA_VOLUME_DEC);
+       message0551.buf[5] = transferFlag(message.buf[3], B00000010, message0551.buf[5], B01010000);
+       //someMessage.buf[0] = readFlag(message.buf[1], B00000110) ? 0xA0 : 0x20;
+
+       can.write(message0551);
+      //Serial.println(message0551.buf[5], HEX);
+      
+     break;
+     
+  
+  }
+}
+
+void canWrite() {
+  can.write(message0358);
+  can.write(message0421);
+}
+
+void shiftGauge(){
+  if (ignitionAcc.getState() || ignitionOn.getState()){ 
+    if (handbrakeSensor.getState()) { // Handbrake is pulled
+      message0421.buf[0] = B00001000; // P
+    } else if (reverseSwitch.getState()) { // Gear switch in reverse
+      message0421.buf[0] = B00010000; // R
+    } else if (pnpSwitch.getState()) { // Gear switch in a gear
+      message0421.buf[0] = B00101001; // O/D OFF --> Sport
+    } else { // Gear switch in neutral
+      message0421.buf[0] = B00011000; // N  
     }
-    else {
-      Keyboard.press(KEY_MEDIA_VOLUME_INC);
-      Keyboard.release(KEY_MEDIA_VOLUME_INC);
+  } 
+}
+
+void onCarduinoSerialTimeout() {
+  carduino.end();
+  delay(1000);
+  carduino.begin();
+}
+
+void onCarduinoSerialEvent(uint8_t type, uint8_t id, BinaryBuffer *payloadBuffer) {
+  if (type == 0x61) {
+    if (id == 0x0a) {
+      // start sniffer
+      can.startSniffer();
+    } else if (id == 0x0b) {
+      // stop sniffer
+      can.stopSniffer();
     }
   }
-  if (mmiSmallWheelButton->wasPressedTimes(1)) {
-     Keyboard.press(KEY_MEDIA_MUTE);
-     Keyboard.release(KEY_MEDIA_MUTE);
-  }
-  if (mmiSmallWheelButton->wasHeldFor(1000)) {
-     mmiAllOff.off();
-     mmi.shutdown();
-  }else{
-    Keyboard.press(KEY_SYSTEM_WAKE_UP);  
-    Keyboard.release(KEY_SYSTEM_WAKE_UP);
-    }
 }
 
-void mmiEvent(uint8_t code) {
-  if (code == 0xff || code == 0x38) {
-    mmi.enableKeys();
-  }
-  else if (code == 0x35) {
-    mmi.setIllumination(illuminationLevel);
-    mmi.setHighlightLevel(0x99);
-  }
+u_int8_t transferFlag(uint8_t sourceValue, uint8_t sourceMask, uint8_t targetValue, uint8_t targetMask) {
+  return readFlag(sourceValue, sourceMask) ? setFlag(targetValue, targetMask) : clearFlag(targetValue, targetMask);
 }
 
-
-  ////////////////////////////
- // ILLUMINATION FUNCTIONS //
-////////////////////////////
-
-void updateIllumination() {
-  illuminationDimUpButton.update();
-  illuminationDimDownButton.update();
-
-  if (illuminationDimUpButton.isPressed() || illuminationDimUpButton.wasHeldFor(500, 200)) {
-    desiredIlluminationLevel = min(255, (desiredIlluminationLevel + 0xFF / 16));
-  }
-  if (illuminationDimDownButton.isPressed() || illuminationDimDownButton.wasHeldFor(500, 200)) {
-    desiredIlluminationLevel = max(46, (desiredIlluminationLevel - 0xFF / 16));
-  }
-
-  changeIllumination(illuminationSensor.getState(), desiredIlluminationLevel);
+bool readFlag(uint8_t value, uint8_t mask) {
+  return mask ==(value & mask);
 }
 
-void changeIllumination(bool newState, uint8_t newLevel) {
-  newLevel = newState ? newLevel : 0x00;
-  if (illuminationState != newState || illuminationLevel != newLevel) {
-    illuminationState = newState;
-    illuminationLevel = newLevel;
-
-    Serial.printf("Illumination %d.\r\n", illuminationLevel);
-    FastLED.setBrightness(illuminationLevel);
-    FastLED.show();
-    mmi.setIllumination(illuminationLevel);
-    mmi.setHighlightLevel(max(0x46, illuminationLevel));
-  }
+uint8_t setFlag(uint8_t value, uint8_t mask) {
+  return value | mask;
 }
 
-
-  //////////////////////////////
- // STEERING WHEEL FUNCTIONS //
-//////////////////////////////
-
-void updateSwc() {
-  swcVolumeUpButton.update();
-  swcVolumeDownButton.update();
-  swcPhoneButton.update();
-  swcVoiceButton.update();
-  swcSeekUpButton.update();
-  swcSeekDownButton.update();
-
-//int swc1 = analogRead(A10);
-//int swc2 = analogRead(A11);
-//Serial.println(swc1);
-//Serial.println(swc2);
-
-  if (swcVolumeUpButton.wasPressedTimes(1)) {
-    Keyboard.press(KEY_MEDIA_VOLUME_INC);
-    Keyboard.release(KEY_MEDIA_VOLUME_INC);
-    _MmiAndroidPacket.payload(21);
-     _MmiAndroidPacket.serialize(Serial);
-    Serial.println("volumeUp");
-  }
-  if (swcVolumeDownButton.wasPressedTimes(1)) {
-    Keyboard.press(KEY_MEDIA_VOLUME_DEC);
-    Keyboard.release(KEY_MEDIA_VOLUME_DEC);
-    _MmiAndroidPacket.payload(22);
-    _MmiAndroidPacket.serialize(Serial);
-    Serial.println("volumeDown");
-  }
-  if (swcPhoneButton.wasPressedTimes(1)) {
-    // TODO start the phone app
-  }
-  if (swcPhoneButton.wasPressedTimes(1)) {
-    }
-  if (swcVoiceButton.wasHeldFor(500)) {
-    _MmiAndroidPacket.payload(42);
-    _MmiAndroidPacket.serialize(Serial);
-  }
-  if (swcVoiceButton.wasPressedTimes(1)) {
-    // TODO start google assistant
-  }
-  if (swcSeekUpButton.wasPressedTimes(1)) {
-    Keyboard.press(KEY_MEDIA_PREV_TRACK);
-    Keyboard.release(KEY_MEDIA_PREV_TRACK);
-    _MmiAndroidPacket.payload(10);
-    _MmiAndroidPacket.serialize(Serial);
-  }
-  if (swcSeekDownButton.wasPressedTimes(1)) {
-    Keyboard.press(KEY_MEDIA_NEXT_TRACK);
-    Keyboard.release(KEY_MEDIA_NEXT_TRACK);
-    _MmiAndroidPacket.payload(11);
-    _MmiAndroidPacket.serialize(Serial);
-  }
+uint8_t clearFlag(uint8_t value, uint8_t mask) {
+  return value & (mask ^ 0xFF);
 }
 
-
-   /////////////////////
-  //Rear Fog Function// 
- /////////////////////
 
 void updateRearFog(){
   rearFogButton.update();
   
-
   if (headlightSensor.getState() && frontFogLight.getState()){
-    if (rearFogButton.wasHeldFor(500)) {
+    if (rearFogButton.wasHeldFor(400)) {
       bcm.toggleRearFogLight();
     }
   }
   if (!frontFogLight.getState() && bcm.isRearFogLightActive()) {
     bcm.toggleRearFogLight();
   }
-}
-  ///////////////////
- // BCM FUNCTIONS //
-///////////////////
 
-void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasherButton,DigitalInput *blueSmirf, Bcm *bcm) {
-  acm.setHub(keySensor.getState());
+  if (bcm.isRearFogLightActive()) {
+    message0358.buf[4] = B10000000; // Rear Fog Lamp
+  } else {
+    message0358.buf[4] = B00000000; // Rear Fog Lamp
+  }
+}
+
+void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm) {
+  
+
 
   // headlight washer
   if (headlightSensor.getState() && headlightWasherButton->wasHeldFor(500)) {
     bcm->washHeadlights(1200);
   }
 
-  // car remote unlock button
-  if (unlockButton->wasPressedTimes(1) || blueSmirf->getState()) {
-    acm.setOtg(true);
-    sleep.cancelSleepRequest();
+  if (unlockButton->wasPressedTimes(1)) {
+   
   }
   else if (!keySensor.getState()&& unlockButton->wasPressedTimes(3)) {
     bcm->openWindows();
   }
 
   // car remote lock button
-  if (lockButton->wasPressedTimes(1) || !blueSmirf->getState()) {
+  if (lockButton->wasPressedTimes(1)) {
     if (bcm->isAnyDoorOpen()) {
         bcm->unlockDoors();
-       
+            
     }
     else {
       if (!keySensor.getState()) {
-        sleep.deepSleep();
-        acm.setOtg(false);
+        
       }
     }
   }
-  else if (!keySensor.getState()&& lockButton->wasPressedTimes(3)) {
+  else if (!keySensor.getState()&& lockButton->wasPressedTimes(2)) {
     bcm->closeWindows();
   }
-  else if (lockButton->wasPressedTimes(4) && !keySensor.getState()) {
-    ecm.startEngineDefrost();
-   
-  }
-}
-
-
-  ///////////////////////
- // CAN BUS FUNCTIONS //
-///////////////////////
-
-void updateCan() { 
-  CAN_message_t canMessage;
- 
-  while (Can0.available()) {
-    Can0.read(canMessage);
-    canSniffer.update(canMessage);
-    bcm.updateCan(canMessage);
-    ecm.updateCan(canMessage);
-    cluster.updateCan(canMessage);
-
-    handbrakeSensor.update(canMessage);
-    headlightSensor.update(canMessage);
-    runningLightSensor.update(canMessage);
-    frontFogLight.update(canMessage);
-    ignitionAcc.update(canMessage);
-    ignitionOn.update(canMessage);  
-    cruiseControl.update(canMessage);
-    keyInSlot.update(canMessage);
-  }
-  
-  //Serial.println(FLDoorSensor.getState());
 }

@@ -57,20 +57,21 @@ class IgnitionButton : public Button {
     uint8_t statusLedState         = 0;
     unsigned int statusLedInterval = 0;
     unsigned int statusLedDuration = 0;
-    IntervalOutput *statusLedGreen = new IntervalOutput(new DigitalOutput(20, LOW));
-    IntervalOutput *statusLedRed   = new IntervalOutput(new DigitalOutput(24, LOW));
-    DigitalOutput *accLed = new DigitalOutput(5, LOW);
-    DigitalOutput *onLed  = new DigitalOutput(2, LOW);
+    IntervalOutput *statusLedGreen = new IntervalOutput(new DigitalOutput(3, HIGH));
+    IntervalOutput *statusLedRed   = new IntervalOutput(new DigitalOutput(4, HIGH));
+    DigitalOutput *accLed = new DigitalOutput(16, HIGH);
+    DigitalOutput *onLed  = new DigitalOutput(17, HIGH);
 };
 
 class Ecm {
   public:
-    Ecm(DigitalInput *clutchSensor, CanInput *brakeSensor, DigitalInput *neutralSensor, DigitalInput *keySensor, Bcm *bcm) {
-      this->clutchSensor  = clutchSensor;
-      this->brakeSensor   = brakeSensor;
-      this->neutralSensor = neutralSensor;
-      this->keySensor     = keySensor;
-      this->bcm           = bcm;
+    Ecm(DigitalInput *ClutchSwitchButton, CanInput *brakeSensor, DigitalInput *pnpSwitch, CanInput *keySensor, Bcm *bcm) {
+      this->ClutchSwitchButton  = ClutchSwitchButton;
+      this->brakeSensor         = brakeSensor;
+      this->pnpSwitch           = pnpSwitch;
+      this->BtConnectLED        = BtConnectLED;
+      this->keySensor           = keySensor;
+      this->bcm                 = bcm;
     }
     boolean isEngineRunning() {
       return this->engineRunning;
@@ -79,7 +80,7 @@ class Ecm {
       return this->engineDefrostTime > 0;
     }
     void startEngine() {
-      if (!this->engineRunning && (this->clutchSensor->getState() || this->neutralSensor->getState())) {
+      if (!this->engineRunning && (this->ClutchSwitchButton->getState() || this->pnpSwitch->getState() || this->BtConnectLED->getState())) {
         this->engineDefrostTime = 0;
         this->setIgnition(IGNITION_ON);
         this->engineRunning = true;
@@ -116,7 +117,7 @@ class Ecm {
         this->ignitionButton->setAccLed(newState == IGNITION_ACC);
         this->natsLed->toggle(newState >= IGNITION_ACC);
     
-        this->nats->toggle(newState >= IGNITION_ON);
+        //this->nats->toggle(newState >= IGNITION_ON);
         this->on->toggle(newState >= IGNITION_ON);
         this->ignitionButton->setOnLed(newState >= IGNITION_ON);
 
@@ -125,25 +126,29 @@ class Ecm {
     }
 
      void updateCan(CAN_message_t canMessage) {
-      this->brakeSensor->update(canMessage);
+      this->brakeSensor->updateCan(canMessage);
+      this->keySensor->updateCan(canMessage);
       }
 
     void update() {
-      this->neutralSensor->getState();
+      this->pnpSwitch->getState();
+      this->BtConnectLED->getState();
       boolean isKeyInserted   = this->keySensor->getState();
-      boolean isClutchPressed = this->clutchSensor->getState();
+      boolean isClutchPressed = this->ClutchSwitchButton->getState();
       boolean isBrakePressed  = this->brakeSensor->getState();
+      //boolean BtConnectLED = this->BtConnectLED->getState();
       
       this->ignitionButton->update();
+      //this->BtConnectLED->update();
       this->crankSensor->update();
       this->crank->update();
 
       // key signal
-      this->key->toggle(isKeyInserted || this->ignitionState >= IGNITION_ON);
+      //this->key->toggle(isKeyInserted || this->ignitionState >= IGNITION_ON);
 
       // ignition button
       if (!this->engineRunning) {
-        if (this->ignitionButton->isPressed() && isKeyInserted) {
+        if (this->ignitionButton->isPressed() && this->BtConnectLED->getState()) {
           // switch engine on
           if (isClutchPressed) {
             this->startEngine();
@@ -179,7 +184,7 @@ class Ecm {
           this->ignitionButton->setStatusLed(IgnitionButton::STATE_GREEN);
         }
       }
-      else if (isKeyInserted) {
+      else if (isClutchPressed) {
         if (isClutchPressed) {
           this->ignitionButton->flashStatusLed(IgnitionButton::STATE_GREEN, 1000, 100);
         }
@@ -229,22 +234,30 @@ class Ecm {
     boolean engineRunning         = false;
     unsigned long engineDefrostTime = 0;
 
-    DigitalInput *clutchSensor;
+    DigitalInput *pnpSwitch;
+    Button *bluetoothConnect  = new Button(new DigitalInput(2),2000);
+    DigitalInput *ClutchSwitchButton;
     CanInput *brakeSensor;
-    DigitalInput *neutralSensor;
-    DigitalInput *keySensor;
+    CanInput *keySensor;
     Bcm *bcm;
         
-    IgnitionButton *ignitionButton = new IgnitionButton(new DigitalInput(39, 20, HIGH, INPUT));
-    DigitalOutput *acc  = new DigitalOutput(42);
-    DigitalOutput *on   = new DigitalOutput(44);
-    DigitalOutput *nats = new DigitalOutput(53);
-    DigitalOutput *key  = new DigitalOutput(43);
-    TimedOutput *crank  = new TimedOutput(new DigitalOutput(41));
-    Button *crankSensor = new Button(new DigitalInput(41, 20, HIGH, OUTPUT));
-        
+    IgnitionButton *ignitionButton        = new IgnitionButton(new DigitalInput(5, 20, HIGH, INPUT));
+    DigitalOutput *acc                    = new DigitalOutput(31);
+    DigitalOutput *on                     = new DigitalOutput(30);
+    TimedOutput *crank                    = new TimedOutput(new DigitalOutput(32));
+    Button *crankSensor                   = new Button(new DigitalInput(32, 20, HIGH, OUTPUT));
 
-    DigitalOutput *natsLed  = new DigitalOutput(57, LOW);
+    DigitalOutput *natsLed                = new DigitalOutput(32, LOW);
+    DigitalInput  *oilPressureSwitch      = new DigitalInput(25, 20, HIGH, INPUT);
+    DigitalInput  *BtConnectLED           = new DigitalInput(33, 20, HIGH, INPUT);
+
+    DigitalInput  *BtNatsBypass           = new DigitalInput(39, 20, HIGH, INPUT);
+    DigitalInput  *BtESD                  = new DigitalInput(38, 20, HIGH, INPUT); // Engine Start Deactivation
+    DigitalInput  *BtStart                = new DigitalInput(37, 20, HIGH, INPUT);
+    DigitalInput  *BtIGN                  = new DigitalInput(36, 20, HIGH, INPUT);
+    DigitalInput  *BtACC                  = new DigitalInput(35, 20, HIGH, INPUT);
+    
+
 };
 
 #endif
