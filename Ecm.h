@@ -65,23 +65,20 @@ class IgnitionButton : public Button {
 
 class Ecm {
   public:
-    Ecm(DigitalInput *ClutchSwitchButton, CanInput *brakeSensor, DigitalInput *pnpSwitch, CanInput *keySensor, Bcm *bcm) {
+    Ecm(DigitalInput *ClutchSwitchButton, CanInput *brakeSensor, DigitalInput *pnpSwitch, CanInput *keySensor,Button *bluetoothConnection, Bcm *bcm) {
       this->ClutchSwitchButton  = ClutchSwitchButton;
       this->brakeSensor         = brakeSensor;
       this->pnpSwitch           = pnpSwitch;
-      this->BtConnectLED        = BtConnectLED;
+      this->bluetoothConnection = bluetoothConnection;
       this->keySensor           = keySensor;
       this->bcm                 = bcm;
     }
     boolean isEngineRunning() {
       return this->engineRunning;
     }
-    boolean isEngineDefrosting() {
-      return this->engineDefrostTime > 0;
-    }
+    
     void startEngine() {
-      if (!this->engineRunning && (this->ClutchSwitchButton->getState() || this->pnpSwitch->getState() || this->BtConnectLED->getState())) {
-        this->engineDefrostTime = 0;
+      if (!this->engineRunning) {
         this->setIgnition(IGNITION_ON);
         this->engineRunning = true;
         this->acc->deactivate();
@@ -89,28 +86,14 @@ class Ecm {
       }
     }
 
-     void startEngineRemote() {
-      if (!this->engineRunning) {
-        this->engineDefrostTime = 0;
-        this->setIgnition(IGNITION_ON);
-        this->engineRunning = true;
-        this->acc->deactivate();
-        this->crank->set(HIGH, CRANK_DURATION);
-      }
-    }
+     
     void stopEngine() {
       if (this->engineRunning) {
         this->setIgnition(IGNITION_OFF);
         this->engineRunning = false;
       }
     }
-    void startEngineDefrost() {
-      this->startEngineRemote();
-      this->engineDefrostTime = millis();
-    }
-    void stopEngineDefrost() {
-      this->engineDefrostTime = 0;
-    }
+    
     void setIgnition(uint8_t newState) {
       if (this->ignitionState != newState) {   
         this->acc->toggle(newState >= IGNITION_ACC && !this->crank->isActive());
@@ -132,14 +115,14 @@ class Ecm {
 
     void update() {
       this->pnpSwitch->getState();
-      this->BtConnectLED->getState();
+      //this->bluetoothConnection->getState();
       boolean isKeyInserted   = this->keySensor->getState();
       boolean isClutchPressed = this->ClutchSwitchButton->getState();
       boolean isBrakePressed  = this->brakeSensor->getState();
-      //boolean BtConnectLED = this->BtConnectLED->getState();
+      //boolean bluetoothConnection = this->bluetoothConnection->getState();
       
       this->ignitionButton->update();
-      //this->BtConnectLED->update();
+      this->bluetoothConnection->update();
       this->crankSensor->update();
       this->crank->update();
 
@@ -148,7 +131,7 @@ class Ecm {
 
       // ignition button
       if (!this->engineRunning) {
-        if (this->ignitionButton->isPressed() && this->BtConnectLED->getState()) {
+        if (this->ignitionButton->isPressed() && this->bluetoothConnection->isHeld()) {
           // switch engine on
           if (isClutchPressed) {
             this->startEngine();
@@ -185,7 +168,7 @@ class Ecm {
         }
       }
       else if (isClutchPressed) {
-        if (isClutchPressed) {
+        if (isClutchPressed && this->bluetoothConnection->isHeld()) {
           this->ignitionButton->flashStatusLed(IgnitionButton::STATE_GREEN, 1000, 100);
         }
         else {
@@ -193,7 +176,7 @@ class Ecm {
             this->ignitionButton->setStatusLed(IgnitionButton::STATE_RED);
           }
           else {
-            this->ignitionButton->flashStatusLed(IgnitionButton::STATE_RED, 2000, 100);
+            this->ignitionButton->flashStatusLed(IgnitionButton::STATE_RED, 500, 100);
           }
         }
       }
@@ -209,18 +192,7 @@ class Ecm {
         this->acc->toggle(this->ignitionState >= IGNITION_ACC);
       }
 
-      // defrost feature
-      if (isKeyInserted && this->isEngineDefrosting()) {
-        this->stopEngineDefrost();
-      }
-
       
-      if (this->engineDefrostTime > 0 && millis() - this->engineDefrostTime >= DEFROST_DURATION) {
-        this->stopEngineDefrost();
-        if (!isKeyInserted) {
-          this->stopEngine();
-        }
-      }
     }
     uint8_t IGNITION_OFF  = 0;
     uint8_t IGNITION_ACC  = 1;
@@ -235,8 +207,8 @@ class Ecm {
     unsigned long engineDefrostTime = 0;
 
     DigitalInput *pnpSwitch;
-    Button *bluetoothConnect  = new Button(new DigitalInput(2),2000);
     DigitalInput *ClutchSwitchButton;
+    Button *bluetoothConnection;
     CanInput *brakeSensor;
     CanInput *keySensor;
     Bcm *bcm;
@@ -247,9 +219,10 @@ class Ecm {
     TimedOutput *crank                    = new TimedOutput(new DigitalOutput(32));
     Button *crankSensor                   = new Button(new DigitalInput(32, 20, HIGH, OUTPUT));
 
-    DigitalOutput *natsLed                = new DigitalOutput(32, LOW);
+    DigitalOutput *natsLed                = new DigitalOutput(20, LOW);
+    DigitalOutput *ButtonIllu             = new DigitalOutput(2, LOW);
     DigitalInput  *oilPressureSwitch      = new DigitalInput(25, 20, HIGH, INPUT);
-    DigitalInput  *BtConnectLED           = new DigitalInput(33, 20, HIGH, INPUT);
+    //DigitalInput  *BtConnectLED           = new DigitalInput(33, 20, HIGH, INPUT);
 
     DigitalInput  *BtNatsBypass           = new DigitalInput(39, 20, HIGH, INPUT);
     DigitalInput  *BtESD                  = new DigitalInput(38, 20, HIGH, INPUT); // Engine Start Deactivation

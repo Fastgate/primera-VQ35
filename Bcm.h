@@ -47,6 +47,21 @@ class Bcm {
       //message0358.buf[4] = B10000000; // Rear Fog Lamp
       //can.write(message0358);
     }
+
+    void toggleESD() {
+      this->ESD->toggle(!this->ESD->getState());
+    }
+    boolean isESDActive() {
+      return this->ESD->getState() == HIGH;
+      
+    }
+    void toggleNatsRly() {
+      this->NatsRly->toggle(!this->NatsRly->getState());
+    }
+    boolean isNatsRly() {
+      return this->NatsRly->getState() == HIGH;
+      
+    }
     void lockDoors() {
       this->lockRelay->set(HIGH, 100);
       this->isLocked = true;
@@ -81,16 +96,18 @@ class Bcm {
     void update(void (*bcmCallback)(Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm)) {
       this->lockButton->update();
       this->unlockButton->update();
+      this->BtLockButton->update();
+      this->BtUnlockButton->update();
       this->lockRelay->update();
       this->unlockRelay->update();
            
       this->headlightWasherButton->update();
       this->headlightWasherRelay->update();
      
-      if (this->lockButton->wasPressedTimesOrMore(1)) {
+      if (this->lockButton->wasPressedTimesOrMore(1) || this->BtLockButton->wasPressedTimesOrMore(1)) {
         this->isLocked = true;
       } 
-      if (this->unlockButton->wasPressedTimesOrMore(1)) {
+      if (this->unlockButton->wasPressedTimesOrMore(1) || this->BtUnlockButton->wasPressedTimesOrMore(1)) {
         this->isLocked = false;
       }
       
@@ -116,11 +133,13 @@ class Bcm {
     Button        *headlightWasherButton  = new Button(new DigitalInput(12, 20, HIGH, INPUT_PULLUP));
     TimedOutput   *headlightWasherRelay   = new TimedOutput(new DigitalOutput(9));
     DigitalOutput *RearFogRelay           = new DigitalOutput(6, HIGH);
+    DigitalOutput *ESD                    = new DigitalOutput(15, HIGH);
+    DigitalOutput *NatsRly                = new DigitalOutput(14, HIGH);
     
 // **************************** Bluetooth Inputs ***************************************
 
-    DigitalInput  *BtUnlock               = new DigitalInput(41, 20, HIGH, INPUT);
-    DigitalInput  *BtLock                 = new DigitalInput(40, 20, HIGH, INPUT);
+    Button *BtLockButton                  = new Button(new DigitalInput(40),700);
+    Button *BtUnlockButton                = new Button(new DigitalInput(41),700);
     DigitalInput  *BtTrunk                = new DigitalInput(21, 20, HIGH, INPUT);
     
     

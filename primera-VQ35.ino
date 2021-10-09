@@ -22,9 +22,12 @@ uint8_t setFlag(uint8_t value, uint8_t mask);
 uint8_t clearFlag(uint8_t value, uint8_t mask);
 
 
-DigitalInput pnpSwitch(26, 20, HIGH, INPUT);
+DigitalInput pnpSwitch(26, 20, LOW, INPUT);
 DigitalInput reverseSwitch(27, 20, HIGH, INPUT);
 //DigitalInput bluetoothConnect(2, 20, HIGH, INPUT);
+
+Button bluetoothConnection(new DigitalInput(33, 20, HIGH, INPUT));
+
 
 Button rearFogButton(new AnalogInput(A10, 250, 700), 0);
 DigitalInput ClutchSwitchButton(28, 20, HIGH, INPUT);
@@ -42,7 +45,7 @@ CanInput keySensor          (0x0358, 0, B00000001);
 void updateRearFog();
 void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm);
 Bcm bcm;
-Ecm ecm(&ClutchSwitchButton, &brakeSensor, &pnpSwitch,  &keySensor, &bcm);
+Ecm ecm(&ClutchSwitchButton, &brakeSensor, &pnpSwitch,  &keySensor, &bluetoothConnection, &bcm);
 
 
 
@@ -227,11 +230,33 @@ void loop() {
   
   updateRearFog();
 
+  toggleESD();
+
  
   if (millis() - lastCanWrite > CAN_WRITE_INTERVAL) {
     canWrite();
     lastCanWrite = millis();
   }
+
+  bluetoothConnection.update();
+  if (bluetoothConnection.wasHeldFor(3000)) {
+    // Nats einschalten
+    bcm.toggleESD();
+    bcm.toggleNatsRly();
+    Serial.println("verbunden");
+  }
+  if (bluetoothConnection.wasPressedFor(1100) && bcm.isESDActive()) {
+    // Nats ausschalten
+    bcm.toggleESD();
+    Serial.println("ESD_aus");
+  } 
+  if (bluetoothConnection.wasPressedFor(1200) && bcm.isNatsRly()) {
+    // Nats ausschalten
+    bcm.toggleNatsRly();
+    Serial.println("NATS_aus");
+  } 
+
+  
  
 }
 
@@ -367,6 +392,8 @@ void updateRearFog(){
   } else {
     message0358.buf[4] = B00000000; // Rear Fog Lamp
   }
+
+  
 }
 
 void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm) {
@@ -401,3 +428,8 @@ void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasher
     bcm->closeWindows();
   }
 }
+
+void toggleESD() {
+     
+      
+    }
