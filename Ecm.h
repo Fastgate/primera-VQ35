@@ -144,12 +144,26 @@ class Ecm {
       this->bluetoothConnection->update();
       this->crankSensor->update();
       this->crank->update();
+      this->BtACC->update();
+      this->BtIGN->update();
       this->BtStart->update();
 
       // key signal
       //this->key->toggle(isKeyInserted || this->ignitionState >= IGNITION_ON);
 
       // ignition button
+      if (this->BtStart->wasPressedFor(100)) {
+        this->setIgnition(IGNITION_ON);
+        this->engineRunning = true;
+      }
+
+      if (
+        this->BtIGN->wasPressedTimes(1) && !this->BtACC->isPressed() || 
+        this->BtACC->wasPressedTimes(1) && !this->BtIGN->isPressed()
+      ) {
+        this->setIgnition(IGNITION_OFF);
+      }
+
       if (!this->engineRunning) {
         if (this->ignitionButton->isPressed()) {
           // switch engine on
@@ -161,17 +175,12 @@ class Ecm {
             this->setIgnition(this->ignitionState >= IGNITION_ON ? IGNITION_OFF : this->ignitionState + 1);
           }
         }
-      }
-      else 
+      } 
+      else {
         if ((this->ignitionButton->isPressed() && isBrakePressed) || this->ignitionButton->wasHeldFor(Ecm::ENGINE_BUTTON_STOP_DURATION)) {
           stopEngine();
         }
-      
-      else{
-        if(!this->ignitionButton->isPressed()){
-         BtStartEngine();
-         }
-        };
+      }
 
       
 
@@ -243,15 +252,13 @@ class Ecm {
     DigitalOutput *natsLed                = new DigitalOutput(20, LOW);
     DigitalOutput *ButtonIllu             = new DigitalOutput(2, LOW);
     DigitalInput  *oilPressureSwitch      = new DigitalInput(25, 20, HIGH, INPUT);
-    //DigitalInput  *BtConnectLED           = new DigitalInput(33, 20, HIGH, INPUT);
+    //DigitalInput  *BtConnectLED         = new DigitalInput(33, 20, HIGH, INPUT);
 
     DigitalInput  *BtNatsBypass           = new DigitalInput(39, 20, HIGH, INPUT);
     DigitalInput  *BtESD                  = new DigitalInput(38, 20, HIGH, INPUT); // Engine Start Deactivation
-    Button  *BtStart                      = new Button(new DigitalInput(37, 20, HIGH, INPUT));
-    DigitalInput  *BtIGN                  = new DigitalInput(36, 20, HIGH, INPUT);
-    DigitalInput  *BtACC                  = new DigitalInput(35, 20, HIGH, INPUT);
-    
-
+    Button *BtStart                       = new Button(new DigitalInput(37, 20, HIGH, INPUT));
+    Button *BtIGN                         = new Button(new DigitalInput(36, 20, HIGH, INPUT));
+    Button *BtACC                         = new Button(new DigitalInput(35, 20, HIGH, INPUT));
 };
 
 #endif
