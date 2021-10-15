@@ -27,6 +27,8 @@ DigitalInput reverseSwitch(27, 20, HIGH, INPUT);
 //DigitalInput bluetoothConnect(2, 20, HIGH, INPUT);
 
 Button bluetoothConnection(new DigitalInput(33, 20, HIGH, INPUT));
+DigitalInput  BtNatsInput(39, 20, HIGH, INPUT); // Input Signal from BT Modul
+//DigitalInput  BtEsdInput(38, 20, HIGH, INPUT); // EngineStartDeactivation Signal from BT Modul
 
 
 Button rearFogButton(new AnalogInput(A10, 250, 700), 0);
@@ -93,12 +95,13 @@ CAN_message_t message06F1;
 
 void setup() {
 
-  carduino.begin();
+  //carduino.begin();
 
   Serial.begin(9600);
   //Serial2.begin(9600);
 
   can.setup(500000, 500000);
+  bcm.setESD(true);
 
   // Add all can packets that should be redirected without change
   can.addCanId(0x0002);
@@ -217,9 +220,26 @@ void setup() {
 }
 
 void loop() {
-  if (carduino.update()) {
+  //if (carduino.update()) {
     //can.update(canCallback);
-  }   
+ // }   
+
+ //Serial.println(BtEsdInput.getState());
+
+ bluetoothConnection.update();
+ 
+  if (!bluetoothConnection.wasHeldFor(2500)) {
+   
+    if (bluetoothConnection.wasPressedFor(500)) {
+      // Nats ausschalten
+      bcm.setNatsRly(false);
+      Serial.println("NATS_aus");
+      
+    } 
+  }else{
+    bcm.setNatsRly(true);
+    Serial.println("Nats_an");
+    }
   can.update(canCallback);
 
   bcm.update(updateBcm); 
@@ -230,31 +250,13 @@ void loop() {
   
   updateRearFog();
 
-  toggleESD();
-
  
   if (millis() - lastCanWrite > CAN_WRITE_INTERVAL) {
     canWrite();
     lastCanWrite = millis();
   }
 
-  bluetoothConnection.update();
-  if (bluetoothConnection.wasHeldFor(3000)) {
-    // Nats einschalten
-    bcm.toggleESD();
-    bcm.toggleNatsRly();
-    Serial.println("verbunden");
-  }
-  if (bluetoothConnection.wasPressedFor(1100) && bcm.isESDActive()) {
-    // Nats ausschalten
-    bcm.toggleESD();
-    Serial.println("ESD_aus");
-  } 
-  if (bluetoothConnection.wasPressedFor(1200) && bcm.isNatsRly()) {
-    // Nats ausschalten
-    bcm.toggleNatsRly();
-    Serial.println("NATS_aus");
-  } 
+  
 
   
  
@@ -428,8 +430,3 @@ void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasher
     bcm->closeWindows();
   }
 }
-
-void toggleESD() {
-     
-      
-    }

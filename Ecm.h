@@ -78,19 +78,38 @@ class Ecm {
     }
     
     void startEngine() {
-      if (!this->engineRunning) {
+      if (!this->engineRunning && bcm->isNatsRlyActive()) {
+        this->bcm->setESD(false);
         this->setIgnition(IGNITION_ON);
         this->engineRunning = true;
         this->acc->deactivate();
         this->crank->set(HIGH, CRANK_DURATION);
+        //this->bcm->isEsdActive();
+        
       }
     }
 
-     
+    void BtStartEngine(){
+      if (this->btStartState != BtStart_ON) {
+        if (!this->engineRunning && bcm->isNatsRlyActive()) {
+          if(this->BtACC->getState() && this->BtIGN->getState()){
+            if(!this->BtStart->isPressed()){
+              this->btStartState = BtStart_ON;
+              Serial.println("BT_Start_ON");
+              
+              }
+             Serial.println("ACC&IGN_ON"); 
+            }
+        }Serial.println("ER&&Nats_ON");
+       }Serial.println("BT_START_STATE");
+    }
+
     void stopEngine() {
       if (this->engineRunning) {
+        this->bcm->setESD(true);
         this->setIgnition(IGNITION_OFF);
         this->engineRunning = false;
+        
       }
     }
     
@@ -125,15 +144,16 @@ class Ecm {
       this->bluetoothConnection->update();
       this->crankSensor->update();
       this->crank->update();
+      this->BtStart->update();
 
       // key signal
       //this->key->toggle(isKeyInserted || this->ignitionState >= IGNITION_ON);
 
       // ignition button
       if (!this->engineRunning) {
-        if (this->ignitionButton->isPressed() && this->bluetoothConnection->isHeld()) {
+        if (this->ignitionButton->isPressed()) {
           // switch engine on
-          if (isClutchPressed) {
+          if (isClutchPressed && this->bcm->isNatsRlyActive()) {
             this->startEngine();
           }
           // toggle through ignition states
@@ -142,21 +162,18 @@ class Ecm {
           }
         }
       }
-      else {
+      else 
         if ((this->ignitionButton->isPressed() && isBrakePressed) || this->ignitionButton->wasHeldFor(Ecm::ENGINE_BUTTON_STOP_DURATION)) {
           stopEngine();
         }
-      }
+      
+      else{
+        if(!this->ignitionButton->isPressed()){
+         BtStartEngine();
+         }
+        };
 
-      if (this->ignitionButton->isPressed() && isKeyInserted) {
-         //Keyboard.press(KEY_SYSTEM_WAKE_UP);  
-         //Keyboard.release(KEY_SYSTEM_WAKE_UP);
-        }else {
-          if(!isKeyInserted){
-            //Keyboard.press(KEY_SYSTEM_POWER_DOWN);   // ENGINE_BUTTON
-            //Keyboard.release(KEY_SYSTEM_POWER_DOWN);
-            }
-          }
+      
 
       // ignition light
       if (this->engineRunning) {
@@ -168,7 +185,7 @@ class Ecm {
         }
       }
       else if (isClutchPressed) {
-        if (isClutchPressed && this->bluetoothConnection->isHeld()) {
+        if (isClutchPressed && this->bcm->isNatsRlyActive()) {
           this->ignitionButton->flashStatusLed(IgnitionButton::STATE_GREEN, 1000, 100);
         }
         else {
@@ -198,13 +215,17 @@ class Ecm {
     uint8_t IGNITION_ACC  = 1;
     uint8_t IGNITION_ON   = 2;
 
+    uint8_t BtStart_OFF  = 0;
+    uint8_t BtStart_ON   = 1;
+
     static const unsigned int DEFROST_DURATION            = 10 * 60 * 1000;
     static const unsigned int CRANK_DURATION              = 700;
     static const unsigned int ENGINE_BUTTON_STOP_DURATION = 3 * 1000;
   private:
     uint8_t ignitionState           = IGNITION_OFF;
-    boolean engineRunning         = false;
+    boolean engineRunning           = false;
     unsigned long engineDefrostTime = 0;
+    uint8_t btStartState            = BtStart_OFF;
 
     DigitalInput *pnpSwitch;
     DigitalInput *ClutchSwitchButton;
@@ -226,7 +247,7 @@ class Ecm {
 
     DigitalInput  *BtNatsBypass           = new DigitalInput(39, 20, HIGH, INPUT);
     DigitalInput  *BtESD                  = new DigitalInput(38, 20, HIGH, INPUT); // Engine Start Deactivation
-    DigitalInput  *BtStart                = new DigitalInput(37, 20, HIGH, INPUT);
+    Button  *BtStart                      = new Button(new DigitalInput(37, 20, HIGH, INPUT));
     DigitalInput  *BtIGN                  = new DigitalInput(36, 20, HIGH, INPUT);
     DigitalInput  *BtACC                  = new DigitalInput(35, 20, HIGH, INPUT);
     

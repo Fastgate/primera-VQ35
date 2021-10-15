@@ -48,20 +48,25 @@ class Bcm {
       //can.write(message0358);
     }
 
-    void toggleESD() {
-      this->ESD->toggle(!this->ESD->getState());
-    }
-    boolean isESDActive() {
-      return this->ESD->getState() == HIGH;
-      
-    }
-    void toggleNatsRly() {
-      this->NatsRly->toggle(!this->NatsRly->getState());
-    }
-    boolean isNatsRly() {
+    boolean isNatsRlyActive() {
       return this->NatsRly->getState() == HIGH;
-      
     }
+
+    void setNatsRly(boolean newState) {
+      this->NatsRly->toggle(newState);
+    }
+
+    boolean isEsdActive() {
+      return this->ESD->getState() == HIGH;
+       //Serial.println("ESD_an");
+    }
+
+    void setESD(boolean newState) {
+      this->ESD->toggle(newState);
+      //Serial.println(ESD->toggle(newState));
+    }
+
+    
     void lockDoors() {
       this->lockRelay->set(HIGH, 100);
       this->isLocked = true;
@@ -110,7 +115,7 @@ class Bcm {
       if (this->unlockButton->wasPressedTimesOrMore(1) || this->BtUnlockButton->wasPressedTimesOrMore(1)) {
         this->isLocked = false;
       }
-      
+       
 
       bcmCallback(this->lockButton, this->unlockButton, this->headlightWasherButton, this);
     }
@@ -141,6 +146,10 @@ class Bcm {
     Button *BtLockButton                  = new Button(new DigitalInput(40),700);
     Button *BtUnlockButton                = new Button(new DigitalInput(41),700);
     DigitalInput  *BtTrunk                = new DigitalInput(21, 20, HIGH, INPUT);
+    DigitalInput  *BtESD                  = new DigitalInput(38, 20, HIGH, INPUT); // EngineStartDeactivation Signal from BT Modul
+    DigitalInput  *BtNatsInput            = new DigitalInput(39, 20, HIGH, INPUT); // Input Signal from BT Modul
+
+    
     
     
 };
