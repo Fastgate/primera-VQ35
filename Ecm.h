@@ -89,20 +89,7 @@ class Ecm {
       }
     }
 
-    void BtStartEngine(){
-      if (this->btStartState != BtStart_ON) {
-        if (!this->engineRunning && bcm->isNatsRlyActive()) {
-          if(this->BtACC->getState() && this->BtIGN->getState()){
-            if(!this->BtStart->isPressed()){
-              this->btStartState = BtStart_ON;
-              Serial.println("BT_Start_ON");
-              
-              }
-             Serial.println("ACC&IGN_ON"); 
-            }
-        }Serial.println("ER&&Nats_ON");
-       }Serial.println("BT_START_STATE");
-    }
+    
 
     void stopEngine() {
       if (this->engineRunning) {
