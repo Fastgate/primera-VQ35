@@ -118,7 +118,8 @@ class Ecm {
       boolean isKeyInserted   = this->keySensor->getState();
       boolean isClutchPressed = this->ClutchSwitchButton->getState();
       boolean isBrakePressed  = this->brakeSensor->getState();
-      boolean canStartEngine  = (!this->pnpSwitch->getState() || isClutchPressed) && this->bcm->isNatsRlyActive();
+      boolean canStartEngineLocal  = isClutchPressed && this->bcm->isNatsRlyActive();
+      boolean canStartEngineRemote = (this->pnpSwitch->getState() || isClutchPressed) && this->bcm->isNatsRlyActive();
       //boolean bluetoothConnection = this->bluetoothConnection->getState();
       
       this->ignitionButton->update();
@@ -136,7 +137,7 @@ class Ecm {
       if (!this->engineRunning) {
 
         // Bluetooth ignition button
-        if (this->BtStart->isPressed() && canStartEngine) {
+        if (this->BtStart->isPressed() && canStartEngineRemote) {
           this->startEngine();
         } 
         else if (this->BtIGN->isPressed()) {
@@ -152,7 +153,7 @@ class Ecm {
         // Car ignition button
         if (this->ignitionButton->isPressed()) {
           // switch engine on
-          if (canStartEngine) {
+          if (canStartEngineLocal) {
             this->startEngine();
           }
           // toggle through ignition states
