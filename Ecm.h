@@ -145,8 +145,8 @@ class Ecm {
       }
 
       if (
-        this->BtIGN->wasPressedTimes(1) && !this->BtACC->isPressed() || 
-        this->BtACC->wasPressedTimes(1) && !this->BtIGN->isPressed()
+        (this->BtIGN->wasPressedTimes(1) && !this->BtACC->isPressed()) || 
+        (this->BtACC->wasPressedTimes(1) && !this->BtIGN->isPressed())
       ) {
         this->setIgnition(IGNITION_OFF);
         this->engineRunning = false;
