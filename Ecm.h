@@ -139,7 +139,7 @@ class Ecm {
       if (!this->engineRunning) {
 
         // Bluetooth ignition button
-        if (this->BtStart->isPressed() && isClutchPressed && this->bcm->isNatsRelayActive()) {
+        if (this->BtStart->isPressed() && isClutchPressed && this->bcm->isNatsRlyActive()) {
           this->startEngine();
         } 
         elseif (this->BtIGN->isPressed()) {
