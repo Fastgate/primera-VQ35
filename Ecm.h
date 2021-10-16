@@ -79,19 +79,15 @@ class Ecm {
     
     void startEngine() {
       if (!this->engineRunning && bcm->isNatsRlyActive()) {
-        this->bcm->setESD(false);
         this->setIgnition(IGNITION_ON);
         this->engineRunning = true;
         this->acc->deactivate();
-        this->crank->set(HIGH, CRANK_DURATION);
-        //this->bcm->isEsdActive();
-        
+        this->crank->set(HIGH, CRANK_DURATION);       
       }
     }
 
     void stopEngine() {
       if (this->engineRunning) {
-        this->bcm->setESD(true);
         this->setIgnition(IGNITION_OFF);
         this->engineRunning = false;
       }

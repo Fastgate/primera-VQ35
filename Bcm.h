@@ -138,7 +138,7 @@ class Bcm {
     Button        *headlightWasherButton  = new Button(new DigitalInput(12, 20, HIGH, INPUT_PULLUP));
     TimedOutput   *headlightWasherRelay   = new TimedOutput(new DigitalOutput(9));
     DigitalOutput *RearFogRelay           = new DigitalOutput(6, HIGH);
-    DigitalOutput *ESD                    = new DigitalOutput(15, HIGH);
+    DigitalOutput *ESD                    = new DigitalOutput(15, LOW);
     DigitalOutput *NatsRly                = new DigitalOutput(14, HIGH);
     
 // **************************** Bluetooth Inputs ***************************************
