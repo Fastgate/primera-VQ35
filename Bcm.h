@@ -55,6 +55,13 @@ class Bcm {
     void setNatsRly(boolean newState) {
       this->NatsRly->toggle(newState);
     }
+    boolean isRunningLightSensorActive() {
+      return this->ButtonIllumination->getState() == HIGH;
+    }
+
+    void setButtonIllumination(boolean newState) {
+      this->ButtonIllumination->toggle(newState);
+    }
 
     boolean isEsdActive() {
       return this->ESD->getState() == HIGH;
@@ -95,7 +102,7 @@ class Bcm {
            
     }
     
-    void update(void (*bcmCallback)(Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm)) {
+    void update(void (*bcmCallback)(Button *BtLockButton, Button *BtUnlockButton, Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm)) {
       this->lockButton->update();
       this->unlockButton->update();
       this->BtLockButton->update();
@@ -114,7 +121,7 @@ class Bcm {
       }
        
 
-      bcmCallback(this->lockButton, this->unlockButton, this->headlightWasherButton, this);
+      bcmCallback(this->BtLockButton, this->BtUnlockButton, this->lockButton, this->unlockButton, this->headlightWasherButton, this);
     }
 
   private:
@@ -134,6 +141,7 @@ class Bcm {
     DigitalOutput *RearFogRelay           = new DigitalOutput(6, HIGH);
     DigitalOutput *ESD                    = new DigitalOutput(15, LOW);
     DigitalOutput *NatsRly                = new DigitalOutput(14, HIGH);
+    DigitalOutput *ButtonIllumination     = new DigitalOutput(2, HIGH);
     
 // **************************** Bluetooth Inputs ***************************************
 

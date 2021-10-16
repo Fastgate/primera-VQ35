@@ -42,7 +42,7 @@ CanInput brakeSensor        (0x06F1, 4, B01000000);
 CanInput keySensor          (0x0358, 0, B00000001);
 
 void updateRearFog();
-void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm);
+void updateBcm(Button *BtLockButton, Button *BtUnlockButton, Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm);
 Bcm bcm;
 Ecm ecm(&ClutchSwitchButton, &brakeSensor, &pnpSwitch,  &keySensor, &bluetoothConnection, &bcm);
 
@@ -216,19 +216,21 @@ void loop() {
     //can.update(canCallback);
  // }   
 
- bluetoothConnection.update();
+   bluetoothConnection.update();
  
-  if (!bluetoothConnection.wasHeldFor(2500)) {
+   if (!bluetoothConnection.wasHeldFor(2500)) {
    
-    if (bluetoothConnection.wasPressedFor(500)) {
-      // Nats ausschalten
-      bcm.setNatsRly(false);
-      Serial.println("NATS_aus");
-      
-    } 
-  }else{
+      if (bluetoothConnection.wasPressedFor(500)) {
+        // Nats ausschalten
+        bcm.setNatsRly(false); 
+     } 
+    }else{
     bcm.setNatsRly(true);
-    Serial.println("Nats_an");
+    }
+
+  if(runningLightSensor.getState()){
+    bcm.setButtonIllumination(true);
+    
     }
     
   can.update(canCallback);
@@ -382,35 +384,44 @@ void updateRearFog(){
   }  
 }
 
-void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm) {
+void updateBcm(Button *BtLockButton, Button *BtUnlockButton, Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm) {
   
-
+  uint8_t unlockCount =0;
+  //Serial.println(unlockCount); 
 
   // headlight washer
   if (headlightSensor.getState() && headlightWasherButton->wasHeldFor(500)) {
     bcm->washHeadlights(1200);
   }
 
-  if (unlockButton->wasPressedTimes(1)) {
-   
+  if (unlockButton->wasPressedTimes(1) || BtUnlockButton->wasPressedTimes(1)) {
+   //Serial.println("Unlock"); 
   }
-  else if (!keySensor.getState()&& unlockButton->wasPressedTimes(3)) {
+  else if (BtUnlockButton->wasPressedTimes(2)) {
     bcm->openWindows();
+    Serial.println("openWindows"); 
   }
+  if (BtUnlockButton->wasPressedTimes(1)){
+    unlockCount = +1;
+    }
+    if(BtUnlockButton->wasPressedTimes(1) && unlockCount >= 2){
+      Serial.println("openWindows");
+      unlockCount = 0; 
+      }
 
   // car remote lock button
-  if (lockButton->wasPressedTimes(1)) {
+  if (lockButton->wasPressedTimes(1) || BtLockButton->wasPressedTimes(1)) {
     if (bcm->isAnyDoorOpen()) {
-        bcm->unlockDoors();
-            
+        bcm->unlockDoors();         
     }
     else {
       if (!keySensor.getState()) {
         
       }
-    }
+    }Serial.println("LOCK");
    }
   else if (!keySensor.getState()&& lockButton->wasPressedTimes(2)) {
     bcm->closeWindows();
   }
+  
 }
