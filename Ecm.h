@@ -165,7 +165,7 @@ class Ecm {
       else {
         // Turning off the Engine
         if (
-            //(!this->BtIGN->wasPressedFor(100) && !this->BtACC->wasPressedFor(100)) || // Bluetooth ignition button turned off
+            (this->BtIGN->wasPressedFor(100)) || // Bluetooth ignition button turned off
             (this->ignitionButton->isPressed() && isBrakePressed) ||                  // Car ignition button pressed while braking
             this->ignitionButton->wasHeldFor(Ecm::ENGINE_BUTTON_STOP_DURATION)        // Car ignition button held down long
           ) {
