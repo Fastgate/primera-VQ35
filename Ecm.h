@@ -89,14 +89,11 @@ class Ecm {
       }
     }
 
-    
-
     void stopEngine() {
       if (this->engineRunning) {
         this->bcm->setESD(true);
         this->setIgnition(IGNITION_OFF);
         this->engineRunning = false;
-        
       }
     }
     
@@ -114,10 +111,10 @@ class Ecm {
       }
     }
 
-     void updateCan(CAN_message_t canMessage) {
+    void updateCan(CAN_message_t canMessage) {
       this->brakeSensor->updateCan(canMessage);
       this->keySensor->updateCan(canMessage);
-      }
+    }
 
     void update() {
       this->pnpSwitch->getState();
@@ -138,21 +135,24 @@ class Ecm {
       // key signal
       //this->key->toggle(isKeyInserted || this->ignitionState >= IGNITION_ON);
 
-      // ignition button
-      if (this->BtStart->wasPressedFor(100)) {
-        this->setIgnition(IGNITION_ON);
-        this->engineRunning = true;
-      }
-
-      if (
-        (this->BtIGN->wasPressedTimes(1) && !this->BtACC->isPressed()) || 
-        (this->BtACC->wasPressedTimes(1) && !this->BtIGN->isPressed())
-      ) {
-        this->setIgnition(IGNITION_OFF);
-        this->engineRunning = false;
-      }
-
+      // ignition logic
       if (!this->engineRunning) {
+
+        // Bluetooth ignition button
+        if (this->BtStart->isPressed() && isClutchPressed && this->bcm->isNatsRelayActive()) {
+          this->startEngine();
+        } 
+        elseif (this->BtIGN->isPressed()) {
+          this->setIgnition(IGNITION_ON);
+        } 
+        elseif (this->BtACC->isPressed()) {
+          this->setIgnition(IGNITION_ACC);
+        } 
+        elseif (this->BtACC->wasPressedFor(0)) {
+          this->setIgnition(IGNITION_OFF);
+        }
+
+        // Car ignition button
         if (this->ignitionButton->isPressed()) {
           // switch engine on
           if (isClutchPressed && this->bcm->isNatsRlyActive()) {
@@ -165,12 +165,15 @@ class Ecm {
         }
       } 
       else {
-        if ((this->ignitionButton->isPressed() && isBrakePressed) || this->ignitionButton->wasHeldFor(Ecm::ENGINE_BUTTON_STOP_DURATION)) {
-          stopEngine();
+        // Turning off the Engine
+        if (
+            (!this->BtIGN->wasPressedFor(0) && !this->BtACC->wasPressedFor(0)) || // Bluetooth ignition button turned off
+            (this->ignitionButton->isPressed() && isBrakePressed) ||              // Car ignition button pressed while braking
+            this->ignitionButton->wasHeldFor(Ecm::ENGINE_BUTTON_STOP_DURATION)    // Car ignition button held down long
+          ) {
+            stopEngine();
         }
-      }
-
-      
+      }      
 
       // ignition light
       if (this->engineRunning) {
