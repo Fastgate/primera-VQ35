@@ -142,13 +142,13 @@ class Ecm {
         if (this->BtStart->isPressed() && isClutchPressed && this->bcm->isNatsRlyActive()) {
           this->startEngine();
         } 
-        elseif (this->BtIGN->isPressed()) {
+        else if (this->BtIGN->isPressed()) {
           this->setIgnition(IGNITION_ON);
         } 
-        elseif (this->BtACC->isPressed()) {
+        else if (this->BtACC->isPressed()) {
           this->setIgnition(IGNITION_ACC);
         } 
-        elseif (this->BtACC->wasPressedFor(0)) {
+        else if (this->BtACC->wasPressedFor(0)) {
           this->setIgnition(IGNITION_OFF);
         }
 
