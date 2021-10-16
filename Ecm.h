@@ -42,12 +42,6 @@ class IgnitionButton : public Button {
     void setStatusLed(uint8_t newState) {
       this->flashStatusLed(newState, 0, 0);
     }
-    void setAccLed(boolean newState) {
-      this->accLed->toggle(newState);
-    }
-    void setOnLed(boolean newState) {
-      this->onLed->toggle(newState);
-    }
     void update() {
       Button::update();
       this->statusLedRed->update();
@@ -59,8 +53,7 @@ class IgnitionButton : public Button {
     unsigned int statusLedDuration = 0;
     IntervalOutput *statusLedGreen = new IntervalOutput(new DigitalOutput(3, HIGH));
     IntervalOutput *statusLedRed   = new IntervalOutput(new DigitalOutput(4, HIGH));
-    DigitalOutput *accLed = new DigitalOutput(16, HIGH);
-    DigitalOutput *onLed  = new DigitalOutput(17, HIGH);
+    
 };
 
 class Ecm {
@@ -99,13 +92,7 @@ class Ecm {
     void setIgnition(uint8_t newState) {
       if (this->ignitionState != newState) {   
         this->acc->toggle(newState >= IGNITION_ACC && !this->crank->isActive());
-        this->ignitionButton->setAccLed(newState == IGNITION_ACC);
-        this->natsLed->toggle(newState >= IGNITION_ACC);
-    
-        //this->nats->toggle(newState >= IGNITION_ON);
         this->on->toggle(newState >= IGNITION_ON);
-        this->ignitionButton->setOnLed(newState >= IGNITION_ON);
-
         this->ignitionState = newState;
       }
     }
@@ -118,7 +105,6 @@ class Ecm {
     void update() {
       //this->pnpSwitch->getState();
       //this->bluetoothConnection->getState();
-      boolean isKeyInserted   = this->keySensor->getState();
       boolean isClutchPressed = this->ClutchSwitchButton->getState();
       boolean isBrakePressed  = this->brakeSensor->getState();
       boolean canStartEngineLocal  = isClutchPressed && this->bcm->isNatsRlyActive();
@@ -132,9 +118,6 @@ class Ecm {
       this->BtACC->update();
       this->BtIGN->update();
       this->BtStart->update();
-
-      // key signal
-      //this->key->toggle(isKeyInserted || this->ignitionState >= IGNITION_ON);
 
       // ignition logic
       if (!this->engineRunning) {
@@ -155,7 +138,7 @@ class Ecm {
         }
 
         // Car ignition button
-        if (this->ignitionButton->isPressed()) {
+        if (this->ignitionButton->isPressed()&& this->bcm->areDoorsUnlocked()) {
           // switch engine on
           if (canStartEngineLocal) {
             this->startEngine();
@@ -187,7 +170,7 @@ class Ecm {
           this->ignitionButton->setStatusLed(IgnitionButton::STATE_GREEN);
         }
       }
-      else if (isClutchPressed) {
+      else if (isClutchPressed &&this->bcm->areDoorsUnlocked()) {
         if (isClutchPressed && this->bcm->isNatsRlyActive()) {
           this->ignitionButton->flashStatusLed(IgnitionButton::STATE_GREEN, 1000, 100);
         }
@@ -218,9 +201,6 @@ class Ecm {
     uint8_t IGNITION_ACC  = 1;
     uint8_t IGNITION_ON   = 2;
 
-    uint8_t BtStart_OFF  = 0;
-    uint8_t BtStart_ON   = 1;
-
     static const unsigned int DEFROST_DURATION            = 10 * 60 * 1000;
     static const unsigned int CRANK_DURATION              = 700;
     static const unsigned int ENGINE_BUTTON_STOP_DURATION = 3 * 1000;
@@ -229,7 +209,6 @@ class Ecm {
     boolean engineRunning           = false;
     boolean buttonStart           = false;
     unsigned long engineDefrostTime = 0;
-    uint8_t btStartState            = BtStart_OFF;
 
     DigitalInput *pnpSwitch;
     DigitalInput *ClutchSwitchButton;
@@ -244,7 +223,6 @@ class Ecm {
     TimedOutput *crank                    = new TimedOutput(new DigitalOutput(32));
     Button *crankSensor                   = new Button(new DigitalInput(32, 20, HIGH, OUTPUT));
 
-    DigitalOutput *natsLed                = new DigitalOutput(20, LOW);
     DigitalOutput *ButtonIllu             = new DigitalOutput(2, LOW);
     DigitalInput  *oilPressureSwitch      = new DigitalInput(25, 20, HIGH, INPUT);
     //DigitalInput  *BtConnectLED         = new DigitalInput(33, 20, HIGH, INPUT);

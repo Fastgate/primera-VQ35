@@ -58,14 +58,11 @@ class Bcm {
 
     boolean isEsdActive() {
       return this->ESD->getState() == HIGH;
-       //Serial.println("ESD_an");
     }
 
     void setESD(boolean newState) {
       this->ESD->toggle(newState);
-      //Serial.println(ESD->toggle(newState));
     }
-
     
     void lockDoors() {
       this->lockRelay->set(HIGH, 100);
@@ -132,9 +129,6 @@ class Bcm {
     CanInput *RLDoorSensor                = new CanInput(0x060D, 0, B00100000);
     CanInput *RRDoorSensor                = new CanInput(0x060D, 0, B01000000);
     CanInput *backDoorSensor              = new CanInput(0x0358, 2, B00000001);
-    //DigitalInput  *ClutchSwitch         = new DigitalInput(17, 20, HIGH, INPUT);
-    //DigitalOutput *WindowDown           = new DigitalOutput(6, HIGH);
-    //DigitalOutput *WindowUp             = new DigitalOutput(5, HIGH);
     Button        *headlightWasherButton  = new Button(new DigitalInput(12, 20, HIGH, INPUT_PULLUP));
     TimedOutput   *headlightWasherRelay   = new TimedOutput(new DigitalOutput(9));
     DigitalOutput *RearFogRelay           = new DigitalOutput(6, HIGH);
@@ -148,10 +142,7 @@ class Bcm {
     DigitalInput  *BtTrunk                = new DigitalInput(21, 20, HIGH, INPUT);
     DigitalInput  *BtESD                  = new DigitalInput(38, 20, HIGH, INPUT); // EngineStartDeactivation Signal from BT Modul
     DigitalInput  *BtNatsInput            = new DigitalInput(39, 20, HIGH, INPUT); // Input Signal from BT Modul
-
-    
-    
-    
+        
 };
 
 #endif

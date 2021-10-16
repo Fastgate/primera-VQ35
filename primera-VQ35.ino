@@ -21,15 +21,12 @@ bool readFlag(uint8_t value, uint8_t mask);
 uint8_t setFlag(uint8_t value, uint8_t mask);
 uint8_t clearFlag(uint8_t value, uint8_t mask);
 
-
 DigitalInput pnpSwitch(26, 20, LOW, INPUT);
 DigitalInput reverseSwitch(27, 20, HIGH, INPUT);
-//DigitalInput bluetoothConnect(2, 20, HIGH, INPUT);
 
 Button bluetoothConnection(new DigitalInput(33, 20, HIGH, INPUT));
 DigitalInput  BtNatsInput(39, 20, HIGH, INPUT); // Input Signal from BT Modul
 //DigitalInput  BtEsdInput(38, 20, HIGH, INPUT); // EngineStartDeactivation Signal from BT Modul
-
 
 Button rearFogButton(new AnalogInput(A10, 250, 700), 0);
 DigitalInput ClutchSwitchButton(28, 20, HIGH, INPUT);
@@ -48,8 +45,6 @@ void updateRearFog();
 void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm);
 Bcm bcm;
 Ecm ecm(&ClutchSwitchButton, &brakeSensor, &pnpSwitch,  &keySensor, &bluetoothConnection, &bcm);
-
-
 
 
 Can can(&Serial);
@@ -91,14 +86,11 @@ CAN_message_t message06F1;
 
 
 
-
-
 void setup() {
 
   //carduino.begin();
 
   Serial.begin(9600);
-  //Serial2.begin(9600);
 
   can.setup(500000, 500000);
   bcm.setESD(true);
@@ -224,8 +216,6 @@ void loop() {
     //can.update(canCallback);
  // }   
 
- //Serial.println(BtEsdInput.getState());
-
  bluetoothConnection.update();
  
   if (!bluetoothConnection.wasHeldFor(2500)) {
@@ -240,6 +230,7 @@ void loop() {
     bcm.setNatsRly(true);
     Serial.println("Nats_an");
     }
+    
   can.update(canCallback);
 
   bcm.update(updateBcm); 
@@ -254,12 +245,7 @@ void loop() {
   if (millis() - lastCanWrite > CAN_WRITE_INTERVAL) {
     canWrite();
     lastCanWrite = millis();
-  }
-
-  
-
-  
- 
+  } 
 }
 
 void canCallback(const CAN_message_t &message) {
@@ -393,9 +379,7 @@ void updateRearFog(){
     message0358.buf[4] = B10000000; // Rear Fog Lamp
   } else {
     message0358.buf[4] = B00000000; // Rear Fog Lamp
-  }
-
-  
+  }  
 }
 
 void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm) {
@@ -425,7 +409,7 @@ void updateBcm(Button *lockButton, Button *unlockButton, Button *headlightWasher
         
       }
     }
-  }
+   }
   else if (!keySensor.getState()&& lockButton->wasPressedTimes(2)) {
     bcm->closeWindows();
   }
