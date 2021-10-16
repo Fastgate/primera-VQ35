@@ -76,6 +76,9 @@ class Ecm {
     boolean isEngineRunning() {
       return this->engineRunning;
     }
+    boolean isbuttonStart() {
+      return this->buttonStart;
+    }
     
     void startEngine() {
       if (!this->engineRunning && bcm->isNatsRlyActive()) {
@@ -139,6 +142,7 @@ class Ecm {
         // Bluetooth ignition button
         if (this->BtStart->isPressed() && canStartEngineRemote) {
           this->startEngine();
+          this->buttonStart = false;
         } 
         else if (this->BtIGN->isPressed()) {
           this->setIgnition(IGNITION_ON);
@@ -155,6 +159,7 @@ class Ecm {
           // switch engine on
           if (canStartEngineLocal) {
             this->startEngine();
+            this->buttonStart = true;
           }
           // toggle through ignition states
           else {
@@ -165,7 +170,7 @@ class Ecm {
       else {
         // Turning off the Engine
         if (
-            (this->BtIGN->wasPressedFor(100)) || // Bluetooth ignition button turned off
+            (!this->buttonStart  && this->BtIGN->wasPressedFor(100)) || // Bluetooth ignition button turned off
             (this->ignitionButton->isPressed() && isBrakePressed) ||                  // Car ignition button pressed while braking
             this->ignitionButton->wasHeldFor(Ecm::ENGINE_BUTTON_STOP_DURATION)        // Car ignition button held down long
           ) {
@@ -222,6 +227,7 @@ class Ecm {
   private:
     uint8_t ignitionState           = IGNITION_OFF;
     boolean engineRunning           = false;
+    boolean buttonStart           = false;
     unsigned long engineDefrostTime = 0;
     uint8_t btStartState            = BtStart_OFF;
 
