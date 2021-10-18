@@ -306,8 +306,6 @@ void canCallback(const CAN_message_t &message) {
       //Serial.println(message0551.buf[5], HEX);
       
      break;
-     
-  
   }
 }
 
@@ -386,42 +384,29 @@ void updateRearFog(){
 
 void updateBcm(Button *BtLockButton, Button *BtUnlockButton, Button *lockButton, Button *unlockButton, Button *headlightWasherButton, Bcm *bcm) {
   
-  uint8_t unlockCount =0;
-  //Serial.println(unlockCount); 
-
+  
   // headlight washer
   if (headlightSensor.getState() && headlightWasherButton->wasHeldFor(500)) {
     bcm->washHeadlights(1200);
   }
 
-  if (unlockButton->wasPressedTimes(1) || BtUnlockButton->wasPressedTimes(1)) {
-   //Serial.println("Unlock"); 
+  // car remote lock button
+
+  if (unlockButton->wasPressedTimes(1) || BtUnlockButton->wasPressedTimes(2)) {
+   Serial.println("Unlock"); 
   }
-  else if (BtUnlockButton->wasPressedTimes(2)) {
+  else if (unlockButton->wasPressedTimes(3) || BtUnlockButton->wasPressedTimes(3)) {
     bcm->openWindows();
     Serial.println("openWindows"); 
   }
-  if (BtUnlockButton->wasPressedTimes(1)){
-    unlockCount = +1;
-    }
-    if(BtUnlockButton->wasPressedTimes(1) && unlockCount >= 2){
-      Serial.println("openWindows");
-      unlockCount = 0; 
-      }
-
-  // car remote lock button
   if (lockButton->wasPressedTimes(1) || BtLockButton->wasPressedTimes(1)) {
     if (bcm->isAnyDoorOpen()) {
         bcm->unlockDoors();         
     }
-    else {
-      if (!keySensor.getState()) {
-        
-      }
-    }Serial.println("LOCK");
+    Serial.println("LOCK");
    }
-  else if (!keySensor.getState()&& lockButton->wasPressedTimes(2)) {
+  else if (lockButton->wasPressedTimes(2) || BtLockButton->wasPressedTimes(2)) {
     bcm->closeWindows();
+    Serial.println("closeWindows");
   }
-  
-}
+ }

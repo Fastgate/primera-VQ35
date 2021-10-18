@@ -145,8 +145,8 @@ class Bcm {
     
 // **************************** Bluetooth Inputs ***************************************
 
-    Button *BtLockButton                  = new Button(new DigitalInput(40),700);
-    Button *BtUnlockButton                = new Button(new DigitalInput(41),700);
+    Button *BtLockButton                  = new Button(new DigitalInput(40),2000);
+    Button *BtUnlockButton                = new Button(new DigitalInput(41),3000);
     DigitalInput  *BtTrunk                = new DigitalInput(21, 20, HIGH, INPUT);
     DigitalInput  *BtESD                  = new DigitalInput(38, 20, HIGH, INPUT); // EngineStartDeactivation Signal from BT Modul
     DigitalInput  *BtNatsInput            = new DigitalInput(39, 20, HIGH, INPUT); // Input Signal from BT Modul
