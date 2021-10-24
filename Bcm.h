@@ -125,8 +125,8 @@ class Bcm {
     }
 
   private:
-    Button *lockButton                    = new Button(new DigitalInput(34),700);
-    Button *unlockButton                  = new Button(new DigitalInput(29),700);
+    Button *lockButton                    = new Button(new DigitalInput(29),700);
+    Button *unlockButton                  = new Button(new DigitalInput(34),700);
     boolean isLocked                      = false;
     TimedOutput *lockRelay                = new TimedOutput(new DigitalOutput(7, HIGH));
     TimedOutput *unlockRelay              = new TimedOutput(new DigitalOutput(8, HIGH));
@@ -139,7 +139,7 @@ class Bcm {
     Button        *headlightWasherButton  = new Button(new DigitalInput(12, 20, HIGH, INPUT_PULLUP));
     TimedOutput   *headlightWasherRelay   = new TimedOutput(new DigitalOutput(9));
     DigitalOutput *RearFogRelay           = new DigitalOutput(6, HIGH);
-    DigitalOutput *ESD                    = new DigitalOutput(15, LOW);
+    DigitalOutput *ESD                    = new DigitalOutput(15, HIGH);
     DigitalOutput *NatsRly                = new DigitalOutput(14, HIGH);
     DigitalOutput *ButtonIllumination     = new DigitalOutput(2, HIGH);
     

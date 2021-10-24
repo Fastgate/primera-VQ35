@@ -118,7 +118,7 @@ public:
 
           for (uint8_t i = 0; i < this->canIdCount; i++) {
             if (this->canIds[i] == this->msg.id) {
-            Serial.println(this->msg.id, HEX);
+            //Serial.println(this->msg.id, HEX);
             this->write(this->msg);
             //return;
           }

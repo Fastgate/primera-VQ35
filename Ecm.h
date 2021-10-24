@@ -90,7 +90,8 @@ class Ecm {
     }
     
     void setIgnition(uint8_t newState) {
-      if (this->ignitionState != newState) {   
+      if (this->ignitionState != newState) { 
+        this->bcm->setESD(true);   
         this->acc->toggle(newState >= IGNITION_ACC && !this->crank->isActive());
         this->on->toggle(newState >= IGNITION_ON);
         this->ignitionState = newState;
@@ -157,6 +158,7 @@ class Ecm {
             (this->ignitionButton->isPressed() && isBrakePressed) ||                  // Car ignition button pressed while braking
             this->ignitionButton->wasHeldFor(Ecm::ENGINE_BUTTON_STOP_DURATION)        // Car ignition button held down long
           ) {
+            this->bcm->setESD(false);
             stopEngine();
         }
       }      
@@ -225,10 +227,7 @@ class Ecm {
 
     DigitalOutput *ButtonIllu             = new DigitalOutput(2, LOW);
     DigitalInput  *oilPressureSwitch      = new DigitalInput(25, 20, HIGH, INPUT);
-    //DigitalInput  *BtConnectLED         = new DigitalInput(33, 20, HIGH, INPUT);
-
-    DigitalInput  *BtNatsBypass           = new DigitalInput(39, 20, HIGH, INPUT);
-    DigitalInput  *BtESD                  = new DigitalInput(38, 20, HIGH, INPUT); // Engine Start Deactivation
+    
     Button *BtStart                       = new Button(new DigitalInput(37, 20, HIGH, INPUT));
     Button *BtIGN                         = new Button(new DigitalInput(36, 20, HIGH, INPUT));
     Button *BtACC                         = new Button(new DigitalInput(35, 20, HIGH, INPUT));

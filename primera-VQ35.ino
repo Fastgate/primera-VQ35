@@ -21,12 +21,11 @@ bool readFlag(uint8_t value, uint8_t mask);
 uint8_t setFlag(uint8_t value, uint8_t mask);
 uint8_t clearFlag(uint8_t value, uint8_t mask);
 
-DigitalInput pnpSwitch(26, 20, LOW, INPUT);
+DigitalInput pnpSwitch(26, 20, HIGH, INPUT);
 DigitalInput reverseSwitch(27, 20, HIGH, INPUT);
 
 Button bluetoothConnection(new DigitalInput(33, 20, HIGH, INPUT));
 DigitalInput  BtNatsInput(39, 20, HIGH, INPUT); // Input Signal from BT Modul
-//DigitalInput  BtEsdInput(38, 20, HIGH, INPUT); // EngineStartDeactivation Signal from BT Modul
 
 Button rearFogButton(new AnalogInput(A10, 250, 700), 0);
 DigitalInput ClutchSwitchButton(28, 20, HIGH, INPUT);
@@ -90,7 +89,7 @@ void setup() {
 
   //carduino.begin();
 
-  Serial.begin(9600);
+  Serial.begin(19200);
 
   can.setup(500000, 500000);
   bcm.setESD(true);
@@ -222,7 +221,7 @@ void loop() {
    
       if (bluetoothConnection.wasPressedFor(500)) {
         // Nats ausschalten
-        bcm.setNatsRly(false); 
+        bcm.setNatsRly(false);
      } 
     }else{
     bcm.setNatsRly(true);
@@ -393,20 +392,20 @@ void updateBcm(Button *BtLockButton, Button *BtUnlockButton, Button *lockButton,
   // car remote lock button
 
   if (unlockButton->wasPressedTimes(1) || BtUnlockButton->wasPressedTimes(2)) {
-   Serial.println("Unlock"); 
+   //Serial.println("Unlock"); 
   }
   else if (unlockButton->wasPressedTimes(3) || BtUnlockButton->wasPressedTimes(3)) {
     bcm->openWindows();
-    Serial.println("openWindows"); 
+    //Serial.println("openWindows"); 
   }
   if (lockButton->wasPressedTimes(1) || BtLockButton->wasPressedTimes(1)) {
     if (bcm->isAnyDoorOpen()) {
         bcm->unlockDoors();         
     }
-    Serial.println("LOCK");
+    //Serial.println("LOCK");
    }
   else if (lockButton->wasPressedTimes(2) || BtLockButton->wasPressedTimes(2)) {
     bcm->closeWindows();
-    Serial.println("closeWindows");
+    //Serial.println("closeWindows");
   }
  }
